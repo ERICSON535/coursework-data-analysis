@@ -79,14 +79,14 @@ for ax, ch, color in zip(axes, channels, colors):
     ax.set_ylabel(ch, fontsize=9)
     ax.grid(True, alpha=0.3)
 
-axes[0].set_title('Рисунок 7 – Временные ряды 8 каналов датасета Power Consumption of Tetouan City',
+axes[0].set_title('Рисунок 12 – Временные ряды 8 каналов датасета Power Consumption of Tetouan City',
                   fontsize=11, fontweight='bold')
 axes[-1].xaxis.set_major_formatter(mdates.DateFormatter('%b'))
 axes[-1].xaxis.set_major_locator(mdates.MonthLocator())
 plt.tight_layout()
 plt.savefig(f'{OUTPUT_DIR}/fig7_timeseries_all_channels.png', dpi=150, bbox_inches='tight')
 plt.close()
-print("Рисунок 7 сохранён.")
+print("Рисунок 12 сохранён.")
 
 # ─────────────────────────────────────────────────────────────────
 # 3. Описательная статистика и диаграммы размаха
@@ -121,12 +121,12 @@ axes[1].set_title('Диаграммы размаха по каналам', fontw
 axes[1].tick_params(axis='x', rotation=30)
 axes[1].grid(True, alpha=0.3, axis='y')
 
-fig.suptitle('Рисунок 8 – Описательная статистика и диаграммы размаха каналов',
+fig.suptitle('Рисунок 13 – Описательная статистика и диаграммы размаха каналов',
              fontsize=11, fontweight='bold')
 plt.tight_layout()
 plt.savefig(f'{OUTPUT_DIR}/fig8_stats_boxplots.png', dpi=150, bbox_inches='tight')
 plt.close()
-print("Рисунок 8 сохранён.")
+print("Рисунок 13 сохранён.")
 
 # ─────────────────────────────────────────────────────────────────
 # 4. Пропущенные значения и выбросы (3σ)
@@ -163,12 +163,12 @@ sns.heatmap(corr, annot=True, fmt='.2f', cmap='RdYlGn',
             vmin=-1, vmax=1, ax=ax,
             linewidths=0.5, square=True,
             cbar_kws={'shrink': 0.8})
-ax.set_title('Рисунок 9 – Матрица корреляций Пирсона для 8 каналов',
+ax.set_title('Рисунок 14 – Матрица корреляций Пирсона для 8 каналов',
              fontsize=11, fontweight='bold')
 plt.tight_layout()
 plt.savefig(f'{OUTPUT_DIR}/fig9_correlation_matrix.png', dpi=150, bbox_inches='tight')
 plt.close()
-print("Рисунок 9 сохранён.")
+print("Рисунок 14 сохранён.")
 
 # ─────────────────────────────────────────────────────────────────
 # 6. Декомпозиция и анализ шума (SNR) — Zone 1
@@ -194,14 +194,14 @@ for ax, (data, label) in zip(axes, components):
     ax.set_ylabel(label, fontsize=9)
     ax.grid(True, alpha=0.3)
 axes[0].set_title(
-    'Рисунок 10 – Декомпозиция Zone 1 Power Consumption (тренд, сезонность, остатки)',
+    'Рисунок 15 – Декомпозиция Zone 1 Power Consumption (тренд, сезонность, остатки)',
     fontsize=11, fontweight='bold')
 axes[-1].xaxis.set_major_formatter(mdates.DateFormatter('%b'))
 axes[-1].xaxis.set_major_locator(mdates.MonthLocator())
 plt.tight_layout()
 plt.savefig(f'{OUTPUT_DIR}/fig10_decomposition_zone1.png', dpi=150, bbox_inches='tight')
 plt.close()
-print("Рисунок 10 сохранён.")
+print("Рисунок 15 сохранён.")
 
 # Гистограмма остатков
 resid = decomp.resid.dropna()
@@ -209,7 +209,7 @@ fig, ax = plt.subplots(figsize=(8, 5))
 ax.hist(resid.values, bins=60, edgecolor='black', alpha=0.7, color='steelblue')
 ax.set_xlabel('Остатки')
 ax.set_ylabel('Частота')
-ax.set_title('Рисунок 11 – Гистограмма остатков декомпозиции Zone 1',
+ax.set_title('Рисунок 16 – Гистограмма остатков декомпозиции Zone 1',
              fontsize=11, fontweight='bold')
 skewness = stats.skew(resid.values)
 ax.axvline(0, color='red', linestyle='--', linewidth=1.5, label=f'0 (skewness={skewness:.3f})')
@@ -218,7 +218,7 @@ ax.grid(True, alpha=0.3)
 plt.tight_layout()
 plt.savefig(f'{OUTPUT_DIR}/fig11_residuals_histogram.png', dpi=150, bbox_inches='tight')
 plt.close()
-print(f"Рисунок 11 сохранён. Skewness остатков: {skewness:.3f}")
+print(f"Рисунок 16 сохранён. Skewness остатков: {skewness:.3f}")
 
 # SNR
 signal_var = np.var(decomp.trend.dropna().values) + np.var(decomp.seasonal.dropna().values)
@@ -240,7 +240,7 @@ ax.plot(zone1_daily.index, zone1_daily.values, linewidth=0.6, color='steelblue',
 ax.scatter(zone1_daily[is_outlier].index, zone1_daily[is_outlier].values,
            color='red', s=20, zorder=5, label=f'Выбросы ({is_outlier.sum()})')
 ax.set_ylabel('Потребление, кВт')
-ax.set_title('Рисунок 12 – Выбросы Zone 1 по критерию 3σ (временная привязка)',
+ax.set_title('Рисунок 17 – Выбросы Zone 1 по критерию 3σ (временная привязка)',
              fontsize=11, fontweight='bold')
 ax.xaxis.set_major_formatter(mdates.DateFormatter('%b'))
 ax.xaxis.set_major_locator(mdates.MonthLocator())
@@ -249,7 +249,7 @@ ax.grid(True, alpha=0.3)
 plt.tight_layout()
 plt.savefig(f'{OUTPUT_DIR}/fig12_outliers_zone1.png', dpi=150, bbox_inches='tight')
 plt.close()
-print(f"Рисунок 12 сохранён. Выбросов: {is_outlier.sum()} ({is_outlier.mean()*100:.2f}%)")
+print(f"Рисунок 17 сохранён. Выбросов: {is_outlier.sum()} ({is_outlier.mean()*100:.2f}%)")
 
 # ─────────────────────────────────────────────────────────────────
 # 7. Вывод по разделу

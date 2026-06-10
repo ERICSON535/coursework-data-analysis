@@ -149,40 +149,16 @@ for bar, freq in zip(bars, freqs):
     ax.text(bar.get_width() + 5, bar.get_y() + bar.get_height() / 2,
             str(freq), va='center', fontsize=8)
 plt.tight_layout()
-plt.savefig(f'{OUTPUT_DIR}/fig3_top_words.png', bbox_inches='tight')
+plt.savefig(f'{OUTPUT_DIR}/fig3_word_frequency.png', bbox_inches='tight')
 plt.close()
-print(f"Сохранено: {OUTPUT_DIR}/fig3_top_words.png")
+print(f"Сохранено: {OUTPUT_DIR}/fig3_word_frequency.png")
 
-# ── 5. Уникальные слова по категориям ────────────────────────────────────────
+# ── 5. TF-IDF матрица и визуализация топ-термов по категориям ────────────────
 print("\n" + "=" * 60)
-print("5. ХАРАКТЕРНЫЕ СЛОВА ПО КАТЕГОРИЯМ")
+print("5. TF-IDF МАТРИЦА И ХАРАКТЕРНЫЕ ТЕРМИНЫ ПО КАТЕГОРИЯМ")
 print("=" * 60)
 
-fig, axes = plt.subplots(1, 5, figsize=(18, 6))
-for ax, cat in zip(axes, sorted(df['category'].unique())):
-    cat_words = [w for tokens in df[df['category'] == cat]['tokens'] for w in tokens]
-    top10 = Counter(cat_words).most_common(10)
-    if not top10:
-        continue
-    words_c, freqs_c = zip(*top10)
-    ax.barh(list(words_c), list(freqs_c), color=COLORS.get(cat, 'grey'), edgecolor='white')
-    ax.set_title(cat.upper(), fontweight='bold', fontsize=10)
-    ax.invert_yaxis()
-    ax.set_xlabel('Частота', fontsize=8)
-    ax.tick_params(axis='y', labelsize=8)
-fig.suptitle('Топ-10 характерных слов по категориям BBC News',
-             fontsize=13, fontweight='bold')
-plt.tight_layout()
-plt.savefig(f'{OUTPUT_DIR}/fig4_words_by_category.png', bbox_inches='tight')
-plt.close()
-print(f"Сохранено: {OUTPUT_DIR}/fig4_words_by_category.png")
-
-# ── 6. TF-IDF матрица ─────────────────────────────────────────────────────────
-print("\n" + "=" * 60)
-print("6. TF-IDF МАТРИЦА")
-print("=" * 60)
-
-vectorizer = TfidfVectorizer(max_features=500, min_df=3, ngram_range=(1, 2),
+vectorizer = TfidfVectorizer(max_features=500, min_df=3, ngram_range=(1, 1),
                               stop_words='english', sublinear_tf=True)
 tfidf_matrix = vectorizer.fit_transform(df['text'])
 print(f"TF-IDF матрица: {tfidf_matrix.shape[0]} документов × {tfidf_matrix.shape[1]} термов")
@@ -191,14 +167,29 @@ print(f"Плотность матрицы: {tfidf_matrix.nnz / (tfidf_matrix.sha
 feature_names = vectorizer.get_feature_names_out()
 print(f"\nПервые 20 термов TF-IDF: {list(feature_names[:20])}")
 
-# TF-IDF scores for top terms per category
-print("\nТоп-5 TF-IDF термов по категориям:")
+# Топ-8 TF-IDF термов по категориям и визуализация
+print("\nТоп-8 TF-IDF термов по категориям:")
 tfidf_df = pd.DataFrame(tfidf_matrix.toarray(), columns=feature_names)
 tfidf_df['category'] = df['category'].values
-for cat in sorted(df['category'].unique()):
+
+cats_sorted = sorted(df['category'].unique())
+fig, axes = plt.subplots(1, len(cats_sorted), figsize=(18, 6))
+for ax, cat in zip(axes, cats_sorted):
     cat_means = tfidf_df[tfidf_df['category'] == cat][feature_names].mean()
-    top5 = cat_means.nlargest(5)
-    print(f"  {cat}: {list(top5.index)}")
+    top8 = cat_means.nlargest(8)
+    print(f"  {cat}: {list(top8.index)}")
+    ax.barh(list(top8.index), list(top8.values),
+            color=COLORS.get(cat, 'steelblue'), edgecolor='white')
+    ax.set_title(cat.upper(), fontweight='bold', fontsize=10)
+    ax.invert_yaxis()
+    ax.set_xlabel('Средний TF-IDF', fontsize=8)
+    ax.tick_params(axis='y', labelsize=8)
+fig.suptitle('Топ-8 TF-IDF термов по категориям BBC News',
+             fontsize=13, fontweight='bold')
+plt.tight_layout()
+plt.savefig(f'{OUTPUT_DIR}/fig4_tfidf.png', bbox_inches='tight')
+plt.close()
+print(f"Сохранено: {OUTPUT_DIR}/fig4_tfidf.png")
 
 # ── 7. Bag-of-Words матрица ───────────────────────────────────────────────────
 print("\n" + "=" * 60)
