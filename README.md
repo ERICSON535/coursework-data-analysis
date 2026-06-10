@@ -9,68 +9,61 @@
 
 ---
 
-## Описание
+## Структура проекта
 
-Репозиторий содержит Python-скрипты первичного анализа четырёх наборов данных разных типов, используемых в задачах искусственного интеллекта.
+| Файл | Описание | Набор данных |
+|------|----------|-------------|
+| `chapter1_tabular_happiness.py` | Глава 1. Первичный анализ табличных данных | World Happiness Report 2021 ([Kaggle](https://www.kaggle.com/datasets/mathurinache/world-happiness-report-2021)) |
+| `chapter2_timeseries_power.py` | Глава 2. Первичный анализ временных рядов | Power Consumption of Tetouan City ([Kaggle](https://www.kaggle.com/datasets/fedesoriano/electric-power-consumption)) |
+| `chapter3_images_xray.py` | Глава 3. Первичный анализ данных с изображениями | Chest X-Ray Images (Pneumonia) ([Kaggle](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia)) |
+| `chapter4_text_bbc.py` | Глава 4. Первичный анализ текстовых данных | BBC News Classification ([Kaggle](https://www.kaggle.com/datasets/alfathterry91/bbc-news-classification)) |
 
-## Датасеты
+---
 
-| Глава | Тип данных | Датасет | Источник |
-|-------|-----------|---------|---------|
-| 1 | Табличные | World Happiness Report 2021 | [Kaggle](https://www.kaggle.com/datasets/mathurinache/world-happiness-report-2021) |
-| 2 | Временные ряды | Human Activity Recognition (HAR) | [Kaggle](https://www.kaggle.com/datasets/uciml/human-activity-recognition-with-smartphones) |
-| 3 | Изображения | Chest X-Ray Pneumonia | [Kaggle](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia) |
-| 4 | Текст | BBC News Classification | [Kaggle](https://www.kaggle.com/datasets/alfathterry91/bbc-news-classification) |
+## Что делают скрипты
 
-## Структура репозитория
+Каждый скрипт выполняет **полный цикл первичного анализа данных** для своего типа:
 
-```
-coursework-data-analysis/
-├── chapter1_tabular_happiness.py   # Анализ табличных данных
-├── chapter2_timeseries_har.py      # Анализ временных рядов
-├── chapter3_images_xray.py         # Анализ изображений
-├── chapter4_text_bbc.py            # Анализ текстовых данных
-├── data/                           # Директория для датасетов (скачать с Kaggle)
-├── plots/                          # Генерируемые графики
-│   ├── chapter1/
-│   ├── chapter2/
-│   ├── chapter3/
-│   └── chapter4/
-├── requirements.txt
-└── README.md
-```
+- Загрузка и первичное знакомство с данными
+- Визуализация (гистограммы, диаграммы рассеяния, тепловые карты)
+- Статистический анализ (описательная статистика, распределения)
+- Анализ пропусков и выбросов
+- Корреляционный анализ
+- Специфические процедуры для каждого типа данных
 
-## Установка зависимостей
+---
+
+## Зависимости
 
 ```bash
-pip install -r requirements.txt
+pip install pandas numpy matplotlib seaborn scipy scikit-learn
+pip install statsmodels                   # Глава 2
+pip install Pillow                        # Глава 3
 ```
+
+---
 
 ## Загрузка датасетов
 
 ```bash
-# Установите Kaggle API
 pip install kaggle
+# Положите kaggle.json в ~/.kaggle/
 
-# Настройте токен: положите kaggle.json в ~/.kaggle/
-
-# Скачайте датасеты
 kaggle datasets download -d mathurinache/world-happiness-report-2021 -p data/ --unzip
-kaggle datasets download -d uciml/human-activity-recognition-with-smartphones -p data/har/ --unzip
+kaggle datasets download -d fedesoriano/electric-power-consumption -p data/power/ --unzip
 kaggle datasets download -d paultimothymooney/chest-xray-pneumonia -p data/ --unzip
 kaggle datasets download -d alfathterry91/bbc-news-classification -p data/ --unzip
 ```
 
-## Запуск анализа
+---
+
+## Запуск
 
 ```bash
 python chapter1_tabular_happiness.py
-python chapter2_timeseries_har.py
+python chapter2_timeseries_power.py
 python chapter3_images_xray.py
 python chapter4_text_bbc.py
 ```
 
-## Требования к окружению
-
-- Python 3.9+
-- Зависимости: `requirements.txt`
+> **Примечание:** перед запуском скачайте соответствующий набор данных с Kaggle и укажите путь к нему в начале нужного скрипта (переменная `DATA_PATH` / `DATA_DIR`).
