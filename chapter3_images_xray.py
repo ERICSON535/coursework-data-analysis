@@ -1,4 +1,4 @@
-"""
+﻿"""
 Глава 3. Первичный анализ набора данных с изображениями
 Датасет: Chest X-Ray Images (Pneumonia)
 Источник: https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia
@@ -84,8 +84,7 @@ ax2.set_xticklabels(splits_order)
 ax2.set_title('Распределение по выборкам', fontweight='bold')
 ax2.set_ylabel('Количество изображений')
 ax2.legend()
-fig.suptitle('Chest X-Ray Pneumonia Dataset — распределение изображений',
-             fontsize=13, fontweight='bold')
+# fig.suptitle removed (caption shown below figure in document)
 plt.tight_layout()
 plt.savefig(f'{OUTPUT_DIR}/fig1_class_distribution.png', bbox_inches='tight')
 plt.close()
@@ -105,8 +104,7 @@ for row, cls in enumerate(CLASSES):
         axes[row, col].axis('off')
         if col == 0:
             axes[row, col].set_ylabel(cls, fontsize=11, fontweight='bold', rotation=90, labelpad=10)
-fig.suptitle('Примеры рентгеновских снимков\nNORMAL vs PNEUMONIA',
-             fontsize=13, fontweight='bold')
+# fig.suptitle removed (caption shown below figure in document)
 plt.tight_layout()
 plt.savefig(f'{OUTPUT_DIR}/fig2_sample_images.png', bbox_inches='tight')
 plt.close()
@@ -145,8 +143,7 @@ ax2.set_xlabel('Пикселей')
 ax2.set_ylabel('Частота')
 ax2.axvline(np.mean(heights), color='red', linestyle='--', label=f'Среднее: {np.mean(heights):.0f}')
 ax2.legend()
-fig.suptitle('Размеры изображений в датасете Chest X-Ray',
-             fontsize=13, fontweight='bold')
+# fig.suptitle removed (caption shown below figure in document)
 plt.tight_layout()
 plt.savefig(f'{OUTPUT_DIR}/fig3_image_sizes.png', bbox_inches='tight')
 plt.close()
@@ -182,8 +179,7 @@ for ax, (cls, pixels) in zip(axes, pixel_stats.items()):
     ax.set_xlabel('Значение пикселя (0–255)')
     ax.set_ylabel('Плотность')
     ax.legend()
-fig.suptitle('Распределение значений пикселей по классам',
-             fontsize=13, fontweight='bold')
+# fig.suptitle removed (caption shown below figure in document)
 plt.tight_layout()
 plt.savefig(f'{OUTPUT_DIR}/fig4_pixel_histograms.png', bbox_inches='tight')
 plt.close()
@@ -223,8 +219,7 @@ if len(mean_images) == 2:
     axes[2].axis('off')
     plt.colorbar(im3, ax=axes[2], fraction=0.046, pad=0.04)
 
-    fig.suptitle('Средние изображения классов и их разность',
-                 fontsize=13, fontweight='bold')
+    # fig.suptitle removed (caption shown below figure in document)
     plt.tight_layout()
     plt.savefig(f'{OUTPUT_DIR}/fig5_mean_images.png', bbox_inches='tight')
     plt.close()
@@ -260,8 +255,7 @@ ax1.legend()
 ax2.set_title('Стандартное отклонение (контраст)', fontweight='bold')
 ax2.set_xlabel('Стандартное отклонение яркости')
 ax2.legend()
-fig.suptitle('Яркость и контраст снимков Chest X-Ray по классам',
-             fontsize=13, fontweight='bold')
+# fig.suptitle removed (caption shown below figure in document)
 plt.tight_layout()
 plt.savefig(f'{OUTPUT_DIR}/fig6_brightness_contrast.png', bbox_inches='tight')
 plt.close()
@@ -278,3 +272,4 @@ print("Наблюдается дисбаланс классов (больше с
 print("Средняя яркость пневмонийных снимков несколько выше — лёгкие более непрозрачны.")
 print("Данные пригодны для бинарной классификации методами глубокого обучения (CNN).")
 print(f"\nВсе графики сохранены в директории: {OUTPUT_DIR}/")
+
