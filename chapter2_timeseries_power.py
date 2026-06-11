@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 Глава 2. Первичный анализ набора данных с временными рядами
 Датасет: Power Consumption of Tetouan City
@@ -79,7 +79,7 @@ for ax, ch, color in zip(axes, channels, colors):
     ax.set_ylabel(ch, fontsize=9)
     ax.grid(True, alpha=0.3)
 
-axes[0].set_title('Рисунок 12 – Временные ряды 8 каналов датасета Power Consumption of Tetouan City',
+axes[0].set_title('Временные ряды 8 каналов датасета Power Consumption of Tetouan City',
                   fontsize=11, fontweight='bold')
 axes[-1].xaxis.set_major_formatter(mdates.DateFormatter('%b'))
 axes[-1].xaxis.set_major_locator(mdates.MonthLocator())
@@ -121,7 +121,7 @@ axes[1].set_title('Диаграммы размаха по каналам', fontw
 axes[1].tick_params(axis='x', rotation=30)
 axes[1].grid(True, alpha=0.3, axis='y')
 
-fig.suptitle('Рисунок 13 – Описательная статистика и диаграммы размаха каналов',
+fig.suptitle('Описательная статистика и диаграммы размаха каналов',
              fontsize=11, fontweight='bold')
 plt.tight_layout()
 plt.savefig(f'{OUTPUT_DIR}/fig8_stats_boxplots.png', dpi=150, bbox_inches='tight')
@@ -163,7 +163,7 @@ sns.heatmap(corr, annot=True, fmt='.2f', cmap='RdYlGn',
             vmin=-1, vmax=1, ax=ax,
             linewidths=0.5, square=True,
             cbar_kws={'shrink': 0.8})
-ax.set_title('Рисунок 14 – Матрица корреляций Пирсона для 8 каналов',
+ax.set_title('Матрица корреляций Пирсона для 8 каналов',
              fontsize=11, fontweight='bold')
 plt.tight_layout()
 plt.savefig(f'{OUTPUT_DIR}/fig9_correlation_matrix.png', dpi=150, bbox_inches='tight')
@@ -194,7 +194,7 @@ for ax, (data, label) in zip(axes, components):
     ax.set_ylabel(label, fontsize=9)
     ax.grid(True, alpha=0.3)
 axes[0].set_title(
-    'Рисунок 15 – Декомпозиция Zone 1 Power Consumption (тренд, сезонность, остатки)',
+    'Декомпозиция Zone 1 Power Consumption (тренд, сезонность, остатки)',
     fontsize=11, fontweight='bold')
 axes[-1].xaxis.set_major_formatter(mdates.DateFormatter('%b'))
 axes[-1].xaxis.set_major_locator(mdates.MonthLocator())
@@ -209,7 +209,7 @@ fig, ax = plt.subplots(figsize=(8, 5))
 ax.hist(resid.values, bins=60, edgecolor='black', alpha=0.7, color='steelblue')
 ax.set_xlabel('Остатки')
 ax.set_ylabel('Частота')
-ax.set_title('Рисунок 16 – Гистограмма остатков декомпозиции Zone 1',
+ax.set_title('Гистограмма остатков декомпозиции Zone 1',
              fontsize=11, fontweight='bold')
 skewness = stats.skew(resid.values)
 ax.axvline(0, color='red', linestyle='--', linewidth=1.5, label=f'0 (skewness={skewness:.3f})')
@@ -240,7 +240,7 @@ ax.plot(zone1_daily.index, zone1_daily.values, linewidth=0.6, color='steelblue',
 ax.scatter(zone1_daily[is_outlier].index, zone1_daily[is_outlier].values,
            color='red', s=20, zorder=5, label=f'Выбросы ({is_outlier.sum()})')
 ax.set_ylabel('Потребление, кВт')
-ax.set_title('Рисунок 17 – Выбросы Zone 1 по критерию 3σ (временная привязка)',
+ax.set_title('Выбросы Zone 1 по критерию 3σ (временная привязка)',
              fontsize=11, fontweight='bold')
 ax.xaxis.set_major_formatter(mdates.DateFormatter('%b'))
 ax.xaxis.set_major_locator(mdates.MonthLocator())
@@ -265,3 +265,4 @@ print(f"  Выбросы Zone1: {zone1_out} ({zone1_out/len(df)*100:.2f}%)")
 print(f"  SNR Zone1: {snr_db:.1f} дБ")
 print("  Вывод: данные пригодны для LSTM/GRU/Prophet без дополнительной фильтрации")
 print("\nВсе рисунки сохранены в:", OUTPUT_DIR)
+
