@@ -370,7 +370,7 @@ if 'happiness' in df.columns and 'gdp' in df.columns:
     for ax, col in zip(axes, noise_cols):
         ax.hist(df_orig[col], bins=20, alpha=0.6, color='steelblue', label='Исходные', density=True)
         ax.hist(df_noisy[col], bins=20, alpha=0.6, color='tomato', label='С шумом', density=True)
-        ax.set_title(col.replace('_', ' ').title(), fontsize=9)
+        ax.set_title(col_titles.get(col, col.replace('_', ' ').title()), fontsize=9)
         ax.legend(fontsize=8)
         ax.set_xlabel('Значение')
     fig.suptitle(f'Аугментация данных: добавление гауссовского шума (σ={noise_sigma})\n'
