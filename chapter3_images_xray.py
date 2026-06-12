@@ -25,6 +25,17 @@ from PIL import Image
 
 OUTPUT_DIR = 'plots/chapter3'
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+import matplotlib
+matplotlib.rcParams.update({
+    'font.size': 13,
+    'axes.titlesize': 15,
+    'axes.labelsize': 13,
+    'xtick.labelsize': 12,
+    'ytick.labelsize': 12,
+    'legend.fontsize': 11,
+    'figure.titlesize': 16,
+})
 DATA_DIR = 'data/chest_xray'
 SPLITS = ['train', 'test', 'val']
 CLASSES = ['NORMAL', 'PNEUMONIA']

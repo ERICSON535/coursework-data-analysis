@@ -22,6 +22,17 @@ from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 
 OUTPUT_DIR = 'plots/chapter4'
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+import matplotlib
+matplotlib.rcParams.update({
+    'font.size': 13,
+    'axes.titlesize': 15,
+    'axes.labelsize': 13,
+    'xtick.labelsize': 12,
+    'ytick.labelsize': 12,
+    'legend.fontsize': 11,
+    'figure.titlesize': 16,
+})
 DATA_PATH = 'data/bbc_news.csv'
 
 STOP_WORDS_RU = set()
@@ -106,10 +117,10 @@ for cat in df['category'].unique():
 
 axes[0].set_title('Распределение длин текстов (слова)', fontweight='bold')
 axes[0].set_xlabel('Количество слов')
-axes[0].legend(fontsize=8)
+axes[0].legend(fontsize=11)
 axes[1].set_title('Распределение длин текстов (символы)', fontweight='bold')
 axes[1].set_xlabel('Количество символов')
-axes[1].legend(fontsize=8)
+axes[1].legend(fontsize=11)
 fig.suptitle('Длины статей BBC News по категориям', fontsize=13, fontweight='bold')
 plt.tight_layout()
 plt.savefig(f'{OUTPUT_DIR}/fig2_text_lengths.png', bbox_inches='tight')
@@ -180,10 +191,10 @@ for ax, cat in zip(axes, cats_sorted):
     print(f"  {cat}: {list(top8.index)}")
     ax.barh(list(top8.index), list(top8.values),
             color=COLORS.get(cat, 'steelblue'), edgecolor='white')
-    ax.set_title(cat.upper(), fontweight='bold', fontsize=10)
+    ax.set_title(cat.upper(), fontweight='bold', fontsize=13)
     ax.invert_yaxis()
-    ax.set_xlabel('Средний TF-IDF', fontsize=8)
-    ax.tick_params(axis='y', labelsize=8)
+    ax.set_xlabel('Средний TF-IDF', fontsize=11)
+    ax.tick_params(axis='y', labelsize=11)
 fig.suptitle('Топ-8 TF-IDF термов по категориям BBC News',
              fontsize=13, fontweight='bold')
 plt.tight_layout()

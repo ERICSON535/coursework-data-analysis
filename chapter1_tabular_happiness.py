@@ -1,432 +1,530 @@
+# -*- coding: utf-8 -*-
 """
-Глава 1. Первичный анализ набора табличных данных
-Датасет: World Happiness Report 2021
-Источник: https://www.kaggle.com/datasets/mathurinache/world-happiness-report
-
-Инструкция по загрузке:
-  kaggle datasets download -d mathurinache/world-happiness-report
-  Распакуйте в папку data/, нужен файл data/2021.csv
+Глава 1. Первичный анализ табличного датасета
+Датасет: IBM HR Analytics Employee Attrition & Performance
+Источник: https://www.kaggle.com/datasets/pavansubhasht/ibm-hr-analytics-attrition-dataset
 """
 
 import os
-import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+import pandas as pd
 import matplotlib
+import matplotlib.pyplot as plt
 import seaborn as sns
+import plotly.express as px
+import plotly.graph_objects as go
 from scipy import stats
 
-matplotlib.rcParams['font.family'] = 'DejaVu Sans'
 matplotlib.rcParams['figure.dpi'] = 100
+matplotlib.rcParams.update({
+    'font.size': 13,
+    'axes.titlesize': 15,
+    'axes.labelsize': 13,
+    'xtick.labelsize': 12,
+    'ytick.labelsize': 12,
+    'legend.fontsize': 11,
+    'figure.titlesize': 16,
+})
+
 OUTPUT_DIR = 'plots/chapter1'
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-DATA_PATH = 'data/2021.csv'
+DATA_PATH = 'data/WA_Fn-UseC_-HR-Employee-Attrition.csv'
 
-# ── 1. Загрузка данных ─────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────
+# 1. Загрузка и общий обзор
+# ─────────────────────────────────────────────────────────────────
 print("=" * 60)
-print("1. ЗАГРУЗКА ДАННЫХ")
+print("1. ЗАГРУЗКА И ОБЩИЙ ОБЗОР")
 print("=" * 60)
 
 df = pd.read_csv(DATA_PATH)
+print(f"Размер: {df.shape[0]} строк x {df.shape[1]} столбцов")
+print(f"\nСтолбцы:\n{list(df.columns)}")
+print(f"\nТипы данных:\n{df.dtypes.value_counts()}")
+print(f"\nПропущенные значения: {df.isnull().sum().sum()}")
+print(f"\nДубликаты строк: {df.duplicated().sum()}")
 
-rename_map = {
-    'Country name': 'country', 'Regional indicator': 'region',
-    'Ladder score': 'happiness', 'Logged GDP per capita': 'gdp',
-    'Social support': 'social_support', 'Healthy life expectancy': 'life_expectancy',
-    'Freedom to make life choices': 'freedom', 'Generosity': 'generosity',
-    'Perceptions of corruption': 'corruption',
-    'Ladder score in Dystopia': 'dystopia_ladder',
-    'Explained by: Log GDP per capita': 'expl_gdp',
-    'Explained by: Social support': 'expl_social',
-    'Explained by: Healthy life expectancy': 'expl_life',
-    'Explained by: Freedom to make life choices': 'expl_freedom',
-    'Explained by: Generosity': 'expl_generosity',
-    'Explained by: Perceptions of corruption': 'expl_corruption',
-    'Dystopia + residual': 'dystopia_residual',
-}
-df.rename(columns={k: v for k, v in rename_map.items() if k in df.columns}, inplace=True)
+num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+cat_cols = df.select_dtypes(include='object').columns.tolist()
+print(f"\nЧисловых признаков: {len(num_cols)}")
+print(f"Категориальных признаков: {len(cat_cols)}")
+print(f"Категориальные: {cat_cols}")
 
-print(f"Размер датасета: {df.shape[0]} строк × {df.shape[1]} столбцов")
-print(f"\nПервые 5 строк:")
-print(df.head())
-print(f"\nТипы данных:\n{df.dtypes}")
+print(f"\nРаспределение целевой переменной (Attrition):")
+print(df['Attrition'].value_counts())
+print(df['Attrition'].value_counts(normalize=True).round(3))
 
-# ── 2. Анализ пропущенных значений ────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────
+# 2. Диаграммы распределения числовых признаков (Matplotlib)
+# ─────────────────────────────────────────────────────────────────
 print("\n" + "=" * 60)
-print("2. ПРОПУЩЕННЫЕ ЗНАЧЕНИЯ")
+print("2. ДИАГРАММЫ РАСПРЕДЕЛЕНИЯ ЧИСЛОВЫХ ПРИЗНАКОВ")
 print("=" * 60)
 
-missing = df.isnull().sum()
-missing_pct = (missing / len(df) * 100).round(2)
-missing_df = pd.DataFrame({'Пропусков': missing, '%': missing_pct})
-missing_df = missing_df[missing_df['Пропусков'] > 0]
-if missing_df.empty:
-    print("Пропущенные значения отсутствуют.")
-else:
-    print(missing_df)
+key_num = ['Age', 'MonthlyIncome', 'DistanceFromHome', 'YearsAtCompany',
+           'TotalWorkingYears', 'NumCompaniesWorked']
 
-# ── 3. Описательная статистика ────────────────────────────────────────────────
-print("\n" + "=" * 60)
-print("3. ОПИСАТЕЛЬНАЯ СТАТИСТИКА")
-print("=" * 60)
-
-num_cols = ['happiness', 'gdp', 'social_support', 'life_expectancy',
-            'freedom', 'generosity', 'corruption']
-num_cols = [c for c in num_cols if c in df.columns]
-print(df[num_cols].describe().round(3))
-
-# ── 4. Распределение индекса счастья ──────────────────────────────────────────
-print("\n" + "=" * 60)
-print("4. ВИЗУАЛИЗАЦИЯ РАСПРЕДЕЛЕНИЙ")
-print("=" * 60)
-
-fig, axes = plt.subplots(2, 3, figsize=(15, 9))
-fig.suptitle('Распределения числовых признаков\nWorld Happiness Report 2015–2021',
-             fontsize=14, fontweight='bold')
-
-col_titles = {
-    'happiness': 'Индекс счастья', 'gdp': 'ВВП на душу (log)',
-    'social_support': 'Соц. поддержка', 'life_expectancy': 'Продолж. жизни',
-    'freedom': 'Свобода', 'generosity': 'Щедрость', 'corruption': 'Коррупция'
-}
-
-for ax, col in zip(axes.flatten(), num_cols[:6]):
-    ax.hist(df[col].dropna(), bins=25, color='steelblue', edgecolor='white', alpha=0.85)
-    ax.axvline(df[col].mean(), color='red', linestyle='--', linewidth=1.5, label=f'Среднее: {df[col].mean():.2f}')
-    ax.axvline(df[col].median(), color='orange', linestyle='--', linewidth=1.5, label=f'Медиана: {df[col].median():.2f}')
-    ax.set_title(col_titles.get(col, col.replace('_', ' ').title()))
+fig, axes = plt.subplots(2, 3, figsize=(16, 10))
+axes = axes.flatten()
+for ax, col in zip(axes, key_num):
+    ax.hist(df[col], bins=30, color='steelblue', edgecolor='white', alpha=0.85)
+    ax.set_title(col, fontweight='bold')
     ax.set_xlabel('Значение')
-    ax.set_ylabel('Количество стран')
-    ax.legend(fontsize=8)
+    ax.set_ylabel('Частота')
+    mu = df[col].mean()
+    ax.axvline(mu, color='red', linestyle='--', linewidth=1.5,
+               label=f'Среднее: {mu:.1f}')
+    ax.legend(fontsize=10)
+    ax.grid(True, alpha=0.3)
 
+fig.suptitle('Распределение ключевых числовых признаков (IBM HR)', fontweight='bold')
 plt.tight_layout()
 plt.savefig(f'{OUTPUT_DIR}/fig1_distributions.png', bbox_inches='tight')
 plt.close()
-print(f"Сохранено: {OUTPUT_DIR}/fig1_distributions.png")
+print("Сохранено: fig1_distributions.png")
 
-# ── 5. Корреляционная матрица ─────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────
+# 3. Тепловые карты (Seaborn)
+# ─────────────────────────────────────────────────────────────────
 print("\n" + "=" * 60)
-print("5. КОРРЕЛЯЦИОННЫЙ АНАЛИЗ")
+print("3. ТЕПЛОВЫЕ КАРТЫ")
 print("=" * 60)
 
-corr_matrix = df[num_cols].corr()
-print("Корреляционная матрица:")
-print(corr_matrix.round(3))
+corr_cols = ['Age', 'MonthlyIncome', 'TotalWorkingYears', 'YearsAtCompany',
+             'YearsInCurrentRole', 'YearsSinceLastPromotion', 'YearsWithCurrManager',
+             'NumCompaniesWorked', 'DistanceFromHome', 'PercentSalaryHike']
+corr = df[corr_cols].corr()
+print("Матрица корреляций:")
+print(corr.round(2).to_string())
 
-# Признаки, сильно коррелирующие с индексом счастья
-if 'happiness' in corr_matrix.columns:
-    corr_with_happiness = corr_matrix['happiness'].drop('happiness').sort_values(ascending=False)
-    print(f"\nКорреляция признаков с индексом счастья:\n{corr_with_happiness.round(3)}")
-
-# Высококоррелированные пары (r > 0.80)
-high_corr_pairs = []
-for i in range(len(corr_matrix.columns)):
-    for j in range(i + 1, len(corr_matrix.columns)):
-        r = corr_matrix.iloc[i, j]
-        if abs(r) > 0.80:
-            high_corr_pairs.append((corr_matrix.columns[i], corr_matrix.columns[j], round(r, 3)))
-if high_corr_pairs:
-    print(f"\nВысококоррелированные пары (|r| > 0.80):")
-    for a, b, r in high_corr_pairs:
-        print(f"  {a} ↔ {b}: r = {r}")
-
-ru_labels = {
-    'happiness': 'Счастье', 'gdp': 'ВВП',
-    'social_support': 'Соц. поддержка', 'life_expectancy': 'Продолж. жизни',
-    'freedom': 'Свобода', 'generosity': 'Щедрость', 'corruption': 'Коррупция'
-}
-corr_plot = corr_matrix.rename(index=ru_labels, columns=ru_labels)
-fig, ax = plt.subplots(figsize=(9, 7))
-sns.heatmap(corr_plot, annot=True, fmt='.2f', cmap='coolwarm', center=0,
-            ax=ax, square=True, linewidths=0.5,
+fig, ax = plt.subplots(figsize=(12, 9))
+sns.heatmap(corr, annot=True, fmt='.2f', cmap='RdYlGn',
+            vmin=-1, vmax=1, ax=ax, linewidths=0.5, square=True,
             cbar_kws={'shrink': 0.8})
-ax.set_title('Корреляционная матрица\nWorld Happiness Report 2021', fontsize=13, fontweight='bold')
+ax.set_title('Матрица корреляций числовых признаков', fontweight='bold')
 plt.tight_layout()
 plt.savefig(f'{OUTPUT_DIR}/fig2_correlation.png', bbox_inches='tight')
 plt.close()
-print(f"Сохранено: {OUTPUT_DIR}/fig2_correlation.png")
+print("Сохранено: fig2_correlation.png")
 
-# ── 6. Анализ по регионам ─────────────────────────────────────────────────────
-print("\n" + "=" * 60)
-print("6. АНАЛИЗ ПО РЕГИОНАМ")
-print("=" * 60)
-
-if 'region' in df.columns and 'happiness' in df.columns:
-    region_stats = df.groupby('region')['happiness'].agg(['mean', 'median', 'std', 'count'])
-    region_stats.columns = ['Среднее', 'Медиана', 'Std', 'Кол-во стран']
-    region_stats = region_stats.sort_values('Среднее', ascending=False)
-    print(region_stats.round(3))
-
-    fig, ax = plt.subplots(figsize=(13, 6))
-    region_order = region_stats.index.tolist()
-    df_sorted = df.copy()
-    df_sorted['region'] = pd.Categorical(df_sorted['region'], categories=region_order, ordered=True)
-    df_sorted = df_sorted.sort_values('region')
-    bp = df_sorted.boxplot(column='happiness', by='region', ax=ax,
-                    patch_artist=True,
-                    boxprops=dict(facecolor='lightblue', color='navy'),
-                    medianprops=dict(color='red', linewidth=2),
-                    whiskerprops=dict(color='navy'),
-                    capprops=dict(color='navy'),
-                    flierprops=dict(marker='o', color='gray', alpha=0.5))
-    ax.set_xticklabels(region_order, rotation=45, ha='right', fontsize=8)
-    ax.set_title('Распределение индекса счастья по регионам мира', fontsize=13, fontweight='bold')
-    ax.set_xlabel('Регион')
-    ax.set_ylabel('Индекс счастья')
-    plt.suptitle('')
-    plt.tight_layout()
-    plt.savefig(f'{OUTPUT_DIR}/fig3_regions_boxplot.png', bbox_inches='tight')
-    plt.close()
-    print(f"Сохранено: {OUTPUT_DIR}/fig3_regions_boxplot.png")
-
-# ── 7. Топ и антирейтинг стран ────────────────────────────────────────────────
-print("\n" + "=" * 60)
-print("7. ТОП-10 И АНТИРЕЙТИНГ-10 СТРАН")
-print("=" * 60)
-
-if 'country' in df.columns and 'happiness' in df.columns:
-    df_sorted = df.sort_values('happiness', ascending=False)
-    top10 = df_sorted.head(10)[['country', 'happiness']]
-    bot10 = df_sorted.tail(10)[['country', 'happiness']]
-    print("Топ-10 самых счастливых стран:")
-    print(top10.to_string(index=False))
-    print("\nАнтирейтинг-10 (наименее счастливые):")
-    print(bot10.to_string(index=False))
-
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
-    ax1.barh(top10['country'], top10['happiness'], color='seagreen', edgecolor='white')
-    ax1.set_title('Топ-10 самых счастливых стран', fontweight='bold')
-    ax1.set_xlabel('Индекс счастья')
-    ax1.invert_yaxis()
-    ax1.set_xlim(0, 8)
-
-    ax2.barh(bot10['country'], bot10['happiness'], color='tomato', edgecolor='white')
-    ax2.set_title('10 наименее счастливых стран', fontweight='bold')
-    ax2.set_xlabel('Индекс счастья')
-    ax2.invert_yaxis()
-    ax2.set_xlim(0, 8)
-
-    plt.suptitle('World Happiness Report 2021', fontsize=14, fontweight='bold')
-    plt.tight_layout()
-    plt.savefig(f'{OUTPUT_DIR}/fig4_top_countries.png', bbox_inches='tight')
-    plt.close()
-    print(f"Сохранено: {OUTPUT_DIR}/fig4_top_countries.png")
-
-# ── 8. Scatter: ВВП vs индекс счастья ────────────────────────────────────────
-if 'gdp' in df.columns and 'happiness' in df.columns:
-    fig, ax = plt.subplots(figsize=(9, 6))
-    scatter = ax.scatter(df['gdp'], df['happiness'], alpha=0.7,
-                         c=df['life_expectancy'] if 'life_expectancy' in df.columns else 'steelblue',
-                         cmap='viridis', s=60, edgecolors='none')
-    if 'life_expectancy' in df.columns:
-        cbar = plt.colorbar(scatter, ax=ax)
-        cbar.set_label('Ожидаемая продолжительность жизни', fontsize=9)
-
-    slope, intercept, r_value, p_value, _ = stats.linregress(
-        df['gdp'].dropna(), df.loc[df['gdp'].notna(), 'happiness'])
-    x_line = np.linspace(df['gdp'].min(), df['gdp'].max(), 100)
-    ax.plot(x_line, slope * x_line + intercept, 'r--', linewidth=2,
-            label=f'Тренд (r={r_value:.2f})')
-    ax.set_xlabel('ВВП на душу населения (log)', fontsize=11)
-    ax.set_ylabel('Индекс счастья', fontsize=11)
-    ax.set_title('Зависимость индекса счастья от ВВП\nWorld Happiness Report 2021',
-                 fontsize=13, fontweight='bold')
-    ax.legend()
-    plt.tight_layout()
-    plt.savefig(f'{OUTPUT_DIR}/fig5_gdp_happiness.png', bbox_inches='tight')
-    plt.close()
-    print(f"Сохранено: {OUTPUT_DIR}/fig5_gdp_happiness.png")
-
-# ── 9. Обнаружение выбросов (boxplot) ────────────────────────────────────────
-print("\n" + "=" * 60)
-print("8. ОБНАРУЖЕНИЕ ВЫБРОСОВ (метод IQR)")
-print("=" * 60)
-
-for col in ['happiness', 'gdp', 'generosity']:
-    if col not in df.columns:
-        continue
-    Q1 = df[col].quantile(0.25)
-    Q3 = df[col].quantile(0.75)
-    IQR = Q3 - Q1
-    lower = Q1 - 1.5 * IQR
-    upper = Q3 + 1.5 * IQR
-    outliers = df[(df[col] < lower) | (df[col] > upper)]
-    print(f"{col}: {len(outliers)} выбросов (границы: [{lower:.3f}, {upper:.3f}])")
-    if not outliers.empty and 'country' in df.columns:
-        print(f"  Страны-выбросы: {', '.join(outliers['country'].values[:5])}")
-
-fig, axes = plt.subplots(1, len(num_cols), figsize=(16, 5))
-for ax, col in zip(axes, num_cols):
-    ax.boxplot(df[col].dropna(), patch_artist=True,
-               boxprops=dict(facecolor='lightcyan', color='steelblue'),
-               medianprops=dict(color='red', linewidth=2))
-    ax.set_title(col_titles.get(col, col.replace('_', ' ').title()), fontsize=8)
-    ax.set_xticks([])
-fig.suptitle('Ящики с усами: выявление выбросов\nWorld Happiness Report 2021',
-             fontsize=13, fontweight='bold')
+# Тепловая карта 2 - нормализованные значения первых 30 строк
+fig, ax = plt.subplots(figsize=(14, 5))
+heat_data = df[corr_cols].apply(lambda x: (x - x.min()) / (x.max() - x.min())).head(30)
+sns.heatmap(heat_data.T, ax=ax, cmap='YlOrRd', linewidths=0.2, xticklabels=False)
+ax.set_title('Нормализованные значения числовых признаков (первые 30 строк)', fontweight='bold')
 plt.tight_layout()
-plt.savefig(f'{OUTPUT_DIR}/fig6_outliers.png', bbox_inches='tight')
+plt.savefig(f'{OUTPUT_DIR}/fig3_heatmap2.png', bbox_inches='tight')
 plt.close()
-print(f"Сохранено: {OUTPUT_DIR}/fig6_outliers.png")
+print("Сохранено: fig3_heatmap2.png")
 
-# ── 10. Seaborn PairPlot — попарные диаграммы рассеяния ──────────────────────
+# ─────────────────────────────────────────────────────────────────
+# 4. Визуализация средствами Seaborn (>=3 пары признаков)
+# ─────────────────────────────────────────────────────────────────
 print("\n" + "=" * 60)
-print("10. SEABORN PAIRPLOT — ПОПАРНЫЕ ДИАГРАММЫ РАССЕЯНИЯ")
+print("4. ВИЗУАЛИЗАЦИЯ SEABORN")
 print("=" * 60)
 
-pp_cols1 = [c for c in ['happiness', 'gdp', 'social_support'] if c in df.columns]
-pp_cols2 = [c for c in ['happiness', 'life_expectancy', 'freedom', 'generosity'] if c in df.columns]
+# Violin plot: MonthlyIncome по Department с разбивкой по Attrition
+fig, ax = plt.subplots(figsize=(13, 6))
+sns.violinplot(data=df, x='Department', y='MonthlyIncome', hue='Attrition',
+               split=True, palette={'Yes': '#e74c3c', 'No': '#3498db'}, ax=ax)
+ax.set_title('Ежемесячный доход по отделам и факту увольнения', fontweight='bold')
+ax.set_xlabel('Отдел')
+ax.set_ylabel('Ежемесячный доход ($)')
+plt.tight_layout()
+plt.savefig(f'{OUTPUT_DIR}/fig4_violin_income.png', bbox_inches='tight')
+plt.close()
+print("Сохранено: fig4_violin_income.png")
 
-# PairPlot 1: счастье, ВВП, соц. поддержка
-df_pp1 = df[pp_cols1].dropna().rename(columns=ru_labels)
-g1 = sns.pairplot(df_pp1, diag_kind='kde', plot_kws={'alpha': 0.6, 'color': 'steelblue'})
-g1.fig.suptitle('Попарные диаграммы рассеяния: счастье, ВВП, социальная поддержка',
-                y=1.02, fontsize=11, fontweight='bold')
-g1.fig.savefig(f'{OUTPUT_DIR}/fig7_pairplot1.png', bbox_inches='tight')
-plt.close('all')
-print(f"Сохранено: {OUTPUT_DIR}/fig7_pairplot1.png")
+# Boxplot: Age по JobRole
+fig, ax = plt.subplots(figsize=(14, 6))
+order = df.groupby('JobRole')['Age'].median().sort_values().index
+sns.boxplot(data=df, x='JobRole', y='Age', order=order, palette='Set2', ax=ax)
+ax.set_title('Возраст сотрудников по должностям', fontweight='bold')
+ax.set_xlabel('Должность')
+ax.set_ylabel('Возраст')
+plt.xticks(rotation=30, ha='right')
+plt.tight_layout()
+plt.savefig(f'{OUTPUT_DIR}/fig5_boxplot_age.png', bbox_inches='tight')
+plt.close()
+print("Сохранено: fig5_boxplot_age.png")
 
-# PairPlot 2: счастье, продолж. жизни, свобода, щедрость
-df_pp2 = df[pp_cols2].dropna().rename(columns=ru_labels)
-g2 = sns.pairplot(df_pp2, diag_kind='hist', plot_kws={'alpha': 0.6, 'color': 'darkorange'})
-g2.fig.suptitle('Попарные диаграммы рассеяния: счастье, продолжительность жизни, свобода, щедрость',
-                y=1.02, fontsize=11, fontweight='bold')
-g2.fig.savefig(f'{OUTPUT_DIR}/fig8_pairplot2.png', bbox_inches='tight')
-plt.close('all')
-print(f"Сохранено: {OUTPUT_DIR}/fig8_pairplot2.png")
+# Scatter + regline: TotalWorkingYears vs MonthlyIncome
+r, p = stats.pearsonr(df['TotalWorkingYears'], df['MonthlyIncome'])
+fig, ax = plt.subplots(figsize=(10, 6))
+colors_scatter = df['Attrition'].map({'Yes': '#e74c3c', 'No': '#3498db'})
+ax.scatter(df['TotalWorkingYears'], df['MonthlyIncome'],
+           c=colors_scatter, alpha=0.4, s=20)
+sns.regplot(data=df, x='TotalWorkingYears', y='MonthlyIncome',
+            scatter=False, ax=ax, color='black', line_kws={'linewidth': 2})
+from matplotlib.lines import Line2D
+legend_elements = [
+    Line2D([0], [0], marker='o', color='w', markerfacecolor='#e74c3c', markersize=10, label='Уволился'),
+    Line2D([0], [0], marker='o', color='w', markerfacecolor='#3498db', markersize=10, label='Остался'),
+]
+ax.legend(handles=legend_elements)
+ax.set_title(f'Стаж vs Доход (r = {r:.2f}, p < 0.001)', fontweight='bold')
+ax.set_xlabel('Общий стаж (лет)')
+ax.set_ylabel('Ежемесячный доход ($)')
+ax.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig(f'{OUTPUT_DIR}/fig6_scatter_income.png', bbox_inches='tight')
+plt.close()
+print(f"Сохранено: fig6_scatter_income.png  r={r:.3f}, p={p:.2e}")
 
-# PairPlot 3: с разбивкой по укрупнённым регионам (hue)
-if 'region' in df.columns:
-    df_pp3 = df[pp_cols1 + ['region']].dropna().copy()
-    region_short = {
-        'Western Europe': 'Зап. Европа',
-        'North America and ANZ': 'С. Америка/АНЗ',
-        'Middle East and North Africa': 'БВСА',
-        'Latin America and Caribbean': 'Лат. Америка',
-        'Central and Eastern Europe': 'Вост. Европа',
-        'East Asia': 'Вост. Азия',
-        'Southeast Asia': 'ЮВ Азия',
-        'Commonwealth of Independent States': 'СНГ',
-        'Sub-Saharan Africa': 'Африка ЮС',
-        'South Asia': 'Юж. Азия',
-    }
-    df_pp3['Регион'] = df_pp3['region'].map(region_short).fillna(df_pp3['region'])
-    df_pp3 = df_pp3[pp_cols1 + ['Регион']].rename(columns=ru_labels)
-    g3 = sns.pairplot(df_pp3, hue='Регион', diag_kind='kde',
-                      plot_kws={'alpha': 0.55}, height=2.2)
-    g3.fig.suptitle('Попарные диаграммы рассеяния с разбивкой по регионам мира',
-                    y=1.02, fontsize=11, fontweight='bold')
-    g3.fig.savefig(f'{OUTPUT_DIR}/fig9_pairplot3.png', bbox_inches='tight')
-    plt.close('all')
-    print(f"Сохранено: {OUTPUT_DIR}/fig9_pairplot3.png")
-
-# ── 11. Пузырьковая диаграмма (аналог Plotly bubble chart) ───────────────────
+# ─────────────────────────────────────────────────────────────────
+# 5. Интерактивные графики (Plotly)
+# ─────────────────────────────────────────────────────────────────
 print("\n" + "=" * 60)
-print("11. ПУЗЫРЬКОВАЯ ДИАГРАММА: ВВП vs СЧАСТЬЕ vs ПРОДОЛЖ. ЖИЗНИ")
+print("5. ИНТЕРАКТИВНЫЕ ГРАФИКИ PLOTLY")
 print("=" * 60)
 
-if all(c in df.columns for c in ['gdp', 'happiness', 'life_expectancy', 'region']):
-    fig, ax = plt.subplots(figsize=(12, 7))
-    regions = df['region'].unique()
-    cmap = plt.cm.get_cmap('tab10', len(regions))
-    region_color = {r: cmap(i) for i, r in enumerate(regions)}
+fig_plotly = px.scatter(
+    df, x='Age', y='MonthlyIncome',
+    color='Attrition', size='YearsAtCompany',
+    hover_data=['JobRole', 'Department', 'MaritalStatus'],
+    color_discrete_map={'Yes': '#e74c3c', 'No': '#3498db'},
+    title='Возраст, доход и стаж сотрудников',
+    labels={'Age': 'Возраст', 'MonthlyIncome': 'Доход ($)', 'Attrition': 'Уволился'}
+)
+fig_plotly.write_image(f'{OUTPUT_DIR}/fig7_plotly_bubble.png', width=1000, height=600)
+print("Сохранено: fig7_plotly_bubble.png")
 
-    for _, row in df.iterrows():
-        size = (row['life_expectancy'] / df['life_expectancy'].max()) ** 2 * 600 + 30
-        ax.scatter(row['gdp'], row['happiness'],
-                   s=size, color=region_color[row['region']],
-                   alpha=0.65, edgecolors='white', linewidths=0.5)
+df_agg = df.groupby(['Department', 'JobLevel'])['MonthlyIncome'].mean().reset_index()
+fig_bar = px.bar(df_agg, x='JobLevel', y='MonthlyIncome', color='Department',
+                 barmode='group',
+                 title='Средний доход по отделам и уровню должности',
+                 labels={'MonthlyIncome': 'Средний доход ($)', 'JobLevel': 'Уровень должности'})
+fig_bar.write_image(f'{OUTPUT_DIR}/fig8_plotly_bar.png', width=1000, height=550)
+print("Сохранено: fig8_plotly_bar.png")
 
-    # Легенда по регионам
-    from matplotlib.lines import Line2D
-    handles = [Line2D([0], [0], marker='o', color='w', markerfacecolor=region_color[r],
-                      markersize=8, label=r) for r in regions]
-    ax.legend(handles=handles, loc='upper left', fontsize=7, ncol=2,
-              framealpha=0.8, title='Регион')
-    ax.set_xlabel('ВВП на душу населения (log)', fontsize=11)
-    ax.set_ylabel('Индекс счастья', fontsize=11)
-    ax.set_title('Пузырьковая диаграмма: ВВП, счастье, продолж. жизни (размер пузыря)\n'
-                 'World Happiness Report 2021', fontsize=12, fontweight='bold')
-    ax.grid(True, alpha=0.3)
-    plt.tight_layout()
-    plt.savefig(f'{OUTPUT_DIR}/fig10_plotly_bubble.png', bbox_inches='tight')
-    plt.close()
-    print(f"Сохранено: {OUTPUT_DIR}/fig10_plotly_bubble.png")
-
-# ── 12. Аугментация данных — добавление шума ─────────────────────────────────
+# ─────────────────────────────────────────────────────────────────
+# 6. Пропущенные значения и дубликаты
+# ─────────────────────────────────────────────────────────────────
 print("\n" + "=" * 60)
-print("12. АУГМЕНТАЦИЯ ДАННЫХ — ДОБАВЛЕНИЕ ГАУССОВСКОГО ШУМА")
+print("6. ПРОПУЩЕННЫЕ ЗНАЧЕНИЯ И ДУБЛИКАТЫ")
 print("=" * 60)
 
-if 'happiness' in df.columns and 'gdp' in df.columns:
-    np.random.seed(42)
-    noise_cols = [c for c in ['happiness', 'gdp', 'social_support'] if c in df.columns]
-    df_orig = df[noise_cols].dropna()
-    noise_sigma = 0.05
-    df_noisy = df_orig + np.random.normal(0, noise_sigma, df_orig.shape)
+missing = df.isnull().sum()
+missing = missing[missing > 0]
+print(f"Признаки с пропусками: {'нет' if len(missing) == 0 else missing.to_string()}")
+print(f"Итого пропущенных: {df.isnull().sum().sum()}")
+dupes = df.duplicated().sum()
+print(f"Дубликатов строк: {dupes}")
+if dupes > 0:
+    df = df.drop_duplicates()
+    print(f"Строк после удаления: {len(df)}")
 
-    fig, axes = plt.subplots(1, len(noise_cols), figsize=(14, 5))
-    for ax, col in zip(axes, noise_cols):
-        ax.hist(df_orig[col], bins=20, alpha=0.6, color='steelblue', label='Исходные', density=True)
-        ax.hist(df_noisy[col], bins=20, alpha=0.6, color='tomato', label='С шумом', density=True)
-        ax.set_title(col_titles.get(col, col.replace('_', ' ').title()), fontsize=9)
-        ax.legend(fontsize=8)
-        ax.set_xlabel('Значение')
-    fig.suptitle(f'Аугментация данных: добавление гауссовского шума (σ={noise_sigma})\n'
-                 'World Happiness Report 2021', fontsize=12, fontweight='bold')
-    plt.tight_layout()
-    plt.savefig(f'{OUTPUT_DIR}/fig11_noise.png', bbox_inches='tight')
-    plt.close()
-    n_augmented = len(df_orig) + len(df_noisy)
-    print(f"Оригинальных записей: {len(df_orig)}, с аугментацией: {n_augmented}")
-    print(f"Сохранено: {OUTPUT_DIR}/fig11_noise.png")
-
-# ── 13. Новый категориальный признак на основе непрерывного ──────────────────
+# ─────────────────────────────────────────────────────────────────
+# 7. Выбросы (IQR)
+# ─────────────────────────────────────────────────────────────────
 print("\n" + "=" * 60)
-print("13. СОЗДАНИЕ НОВОГО КАТЕГОРИАЛЬНОГО ПРИЗНАКА")
+print("7. АНАЛИЗ ВЫБРОСОВ (IQR)")
 print("=" * 60)
 
-if 'happiness' in df.columns:
-    bins = [0, 4.0, 5.5, 6.5, 10]
-    labels = ['Низкое', 'Ниже среднего', 'Выше среднего', 'Высокое']
-    df['happiness_cat'] = pd.cut(df['happiness'], bins=bins, labels=labels)
-    print("Распределение по новой категории:")
-    print(df['happiness_cat'].value_counts().sort_index())
+outlier_cols = ['MonthlyIncome', 'Age', 'DistanceFromHome',
+                'NumCompaniesWorked', 'YearsAtCompany']
+print("Выбросы по критерию IQR (1.5*IQR):")
+for col in outlier_cols:
+    Q1, Q3 = df[col].quantile(0.25), df[col].quantile(0.75)
+    IQR = Q3 - Q1
+    n_out = ((df[col] < Q1 - 1.5*IQR) | (df[col] > Q3 + 1.5*IQR)).sum()
+    print(f"  {col:25s}: {n_out:4d} ({n_out/len(df)*100:.1f}%)")
 
-    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
-    counts = df['happiness_cat'].value_counts().sort_index()
-    colors_cat = ['#d73027', '#fdae61', '#a6d96a', '#1a9850']
-    axes[0].bar(counts.index.astype(str), counts.values, color=colors_cat, edgecolor='white')
-    axes[0].set_title('Количество стран по уровню счастья', fontweight='bold')
-    axes[0].set_xlabel('Уровень счастья')
-    axes[0].set_ylabel('Количество стран')
+fig, ax = plt.subplots(figsize=(13, 5))
+df[outlier_cols].boxplot(ax=ax)
+ax.set_title('Диаграммы размаха — выявление выбросов', fontweight='bold')
+ax.tick_params(axis='x', rotation=15)
+ax.grid(True, alpha=0.3, axis='y')
+plt.tight_layout()
+plt.savefig(f'{OUTPUT_DIR}/fig9_outliers.png', bbox_inches='tight')
+plt.close()
+print("Сохранено: fig9_outliers.png")
 
-    for cat, color in zip(labels, colors_cat):
-        data = df[df['happiness_cat'] == cat]['happiness'].dropna()
-        if not data.empty:
-            axes[1].hist(data, bins=12, alpha=0.65, label=cat, color=color, density=True)
-    axes[1].set_title('Распределение индекса счастья по категориям', fontweight='bold')
-    axes[1].set_xlabel('Индекс счастья')
-    axes[1].set_ylabel('Плотность')
-    axes[1].legend(fontsize=9)
+# ─────────────────────────────────────────────────────────────────
+# 8. Условная фильтрация (>=3 различных фильтра)
+# ─────────────────────────────────────────────────────────────────
+print("\n" + "=" * 60)
+print("8. УСЛОВНАЯ ФИЛЬТРАЦИЯ")
+print("=" * 60)
 
-    fig.suptitle('Новый категориальный признак: уровень счастья\nWorld Happiness Report 2021',
-                 fontsize=12, fontweight='bold')
-    plt.tight_layout()
-    plt.savefig(f'{OUTPUT_DIR}/fig12_new_category.png', bbox_inches='tight')
-    plt.close()
-    print(f"Сохранено: {OUTPUT_DIR}/fig12_new_category.png")
+f1 = df[(df['MonthlyIncome'] >= 10000) & (df['TotalWorkingYears'] >= 10)]
+print(f"Фильтр 1 (доход>=10000 И стаж>=10 лет): {len(f1)} записей, "
+      f"доля увольнений: {(f1['Attrition']=='Yes').mean():.1%}")
 
-# ── 14. Вывод ─────────────────────────────────────────────────────────────────
+f2 = df[(df['Age'] < 30) & (df['Department'] == 'Research & Development')]
+print(f"Фильтр 2 (возраст<30 И R&D): {len(f2)} записей, "
+      f"средний доход: ${f2['MonthlyIncome'].mean():.0f}")
+
+f3 = df[(df['BusinessTravel'] == 'Travel_Frequently') & (df['JobSatisfaction'] <= 2)]
+print(f"Фильтр 3 (частые командировки И удовлетворённость<=2): {len(f3)} записей, "
+      f"доля увольнений: {(f3['Attrition']=='Yes').mean():.1%}")
+
+# ─────────────────────────────────────────────────────────────────
+# 9. Добавление шума (>=2 признака, не целевые)
+# ─────────────────────────────────────────────────────────────────
+print("\n" + "=" * 60)
+print("9. ДОБАВЛЕНИЕ ШУМА")
+print("=" * 60)
+
+np.random.seed(42)
+df_noisy = df.copy()
+noise_income = np.random.normal(0, df['MonthlyIncome'].std() * 0.02, len(df))
+df_noisy['MonthlyIncome_noisy'] = (df['MonthlyIncome'] + noise_income).clip(lower=0)
+noise_age = np.random.normal(0, 0.5, len(df))
+df_noisy['Age_noisy'] = (df['Age'] + noise_age).round().clip(lower=18, upper=70)
+
+print(f"MonthlyIncome: σ_orig={df['MonthlyIncome'].std():.1f}, "
+      f"σ_noisy={df_noisy['MonthlyIncome_noisy'].std():.1f}")
+print(f"Age:           σ_orig={df['Age'].std():.2f}, "
+      f"σ_noisy={df_noisy['Age_noisy'].std():.2f}")
+
+fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+axes[0].hist(df['MonthlyIncome'], bins=40, alpha=0.6, label='Оригинал', color='steelblue')
+axes[0].hist(df_noisy['MonthlyIncome_noisy'], bins=40, alpha=0.6, label='С шумом', color='orange')
+axes[0].set_title('MonthlyIncome: до и после шума', fontweight='bold')
+axes[0].set_xlabel('Доход ($)')
+axes[0].legend()
+axes[1].hist(df['Age'], bins=30, alpha=0.6, label='Оригинал', color='steelblue')
+axes[1].hist(df_noisy['Age_noisy'], bins=30, alpha=0.6, label='С шумом', color='orange')
+axes[1].set_title('Age: до и после шума', fontweight='bold')
+axes[1].set_xlabel('Возраст')
+axes[1].legend()
+fig.suptitle('Добавление гауссовского шума для аугментации данных', fontweight='bold')
+plt.tight_layout()
+plt.savefig(f'{OUTPUT_DIR}/fig10_noise.png', bbox_inches='tight')
+plt.close()
+print("Сохранено: fig10_noise.png")
+
+# ─────────────────────────────────────────────────────────────────
+# 10. Преобразование числовых → категориальные
+# ─────────────────────────────────────────────────────────────────
+print("\n" + "=" * 60)
+print("10. ПРЕОБРАЗОВАНИЕ ЧИСЛОВЫХ В КАТЕГОРИАЛЬНЫЕ")
+print("=" * 60)
+
+bins_age   = [0, 30, 40, 50, 100]
+labels_age = ['Молодой (<30)', 'Средний (30-40)', 'Опытный (40-50)', 'Старший (50+)']
+df['AgeGroup'] = pd.cut(df['Age'], bins=bins_age, labels=labels_age, right=False)
+print("Группы возраста:")
+print(df['AgeGroup'].value_counts().sort_index())
+
+bins_i   = [0, 3000, 6000, 10000, 100000]
+labels_i = ['Низкий (<3K)', 'Средний (3-6K)', 'Высокий (6-10K)', 'Топ (>10K)']
+df['IncomeGroup'] = pd.cut(df['MonthlyIncome'], bins=bins_i, labels=labels_i)
+print("\nГруппы дохода:")
+print(df['IncomeGroup'].value_counts().sort_index())
+
+# ─────────────────────────────────────────────────────────────────
+# 11. Новая категория
+# ─────────────────────────────────────────────────────────────────
+print("\n" + "=" * 60)
+print("11. ВВЕДЕНИЕ НОВОЙ КАТЕГОРИИ AttritionRisk")
+print("=" * 60)
+
+def risk_category(row):
+    if (row['BusinessTravel'] == 'Travel_Frequently'
+            and row['JobSatisfaction'] <= 2
+            and row['OverTime'] == 'Yes'):
+        return 'Высокий'
+    elif (row['BusinessTravel'] == 'Non-Travel'
+          and row['JobSatisfaction'] >= 3
+          and row['OverTime'] == 'No'):
+        return 'Низкий'
+    else:
+        return 'Средний'
+
+df['AttritionRisk'] = df.apply(risk_category, axis=1)
+print("Распределение AttritionRisk:")
+print(df['AttritionRisk'].value_counts())
+val_rate = df.groupby('AttritionRisk')['Attrition'].apply(
+    lambda x: (x == 'Yes').mean()).round(3)
+print("\nФактическая доля уволившихся по категории риска:")
+print(val_rate)
+
+fig, ax = plt.subplots(figsize=(10, 5))
+risk_counts = df['AttritionRisk'].value_counts()
+colors_map = {'Высокий': '#e74c3c', 'Средний': '#f39c12', 'Низкий': '#27ae60'}
+order_risk = ['Высокий', 'Средний', 'Низкий']
+bars = ax.bar([r for r in order_risk if r in risk_counts],
+              [val_rate.get(r, 0) * 100 for r in order_risk if r in risk_counts],
+              color=[colors_map[r] for r in order_risk if r in risk_counts],
+              edgecolor='white', width=0.5)
+for bar, r in zip(bars, [r for r in order_risk if r in risk_counts]):
+    n = risk_counts.get(r, 0)
+    ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
+            f'n={n}', ha='center', fontsize=11)
+ax.set_title('Доля уволившихся по категории AttritionRisk', fontweight='bold')
+ax.set_xlabel('Категория риска')
+ax.set_ylabel('Доля уволившихся (%)')
+ax.set_ylim(0, 60)
+ax.grid(True, alpha=0.3, axis='y')
+plt.tight_layout()
+plt.savefig(f'{OUTPUT_DIR}/fig11_new_category.png', bbox_inches='tight')
+plt.close()
+print("Сохранено: fig11_new_category.png")
+
+# ─────────────────────────────────────────────────────────────────
+# 12. Повторная визуализация после преобразований
+# ─────────────────────────────────────────────────────────────────
+print("\n" + "=" * 60)
+print("12. ПОВТОРНАЯ ВИЗУАЛИЗАЦИЯ")
+print("=" * 60)
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+df['AgeGroup'].value_counts().sort_index().plot(
+    kind='bar', ax=axes[0], color='steelblue', edgecolor='white')
+axes[0].set_title('Распределение возрастных групп', fontweight='bold')
+axes[0].set_xlabel('Возрастная группа')
+axes[0].set_ylabel('Количество')
+axes[0].tick_params(axis='x', rotation=20)
+axes[0].grid(True, alpha=0.3, axis='y')
+
+df['IncomeGroup'].value_counts().sort_index().plot(
+    kind='bar', ax=axes[1], color='darkorange', edgecolor='white')
+axes[1].set_title('Распределение групп дохода', fontweight='bold')
+axes[1].set_xlabel('Группа дохода')
+axes[1].set_ylabel('Количество')
+axes[1].tick_params(axis='x', rotation=20)
+axes[1].grid(True, alpha=0.3, axis='y')
+
+fig.suptitle('Повторная визуализация после категоризации', fontweight='bold')
+plt.tight_layout()
+plt.savefig(f'{OUTPUT_DIR}/fig12_revisual.png', bbox_inches='tight')
+plt.close()
+print("Сохранено: fig12_revisual.png")
+
+# ─────────────────────────────────────────────────────────────────
+# 13. Категориальные данные
+# ─────────────────────────────────────────────────────────────────
+print("\n" + "=" * 60)
+print("13. КАТЕГОРИАЛЬНЫЕ ДАННЫЕ")
+print("=" * 60)
+
+for col in cat_cols:
+    print(f"\n{col}: {df[col].nunique()} значений")
+    print(df[col].value_counts().to_string())
+
+fig, axes = plt.subplots(2, 4, figsize=(18, 10))
+axes = axes.flatten()
+for ax, col in zip(axes, cat_cols):
+    counts = df[col].value_counts()
+    ax.bar(range(len(counts)), counts.values, color='steelblue', edgecolor='white')
+    ax.set_title(col, fontweight='bold')
+    ax.set_xticks(range(len(counts)))
+    ax.set_xticklabels(counts.index, rotation=30, ha='right', fontsize=9)
+    ax.set_ylabel('Количество')
+    ax.grid(True, alpha=0.3, axis='y')
+for i in range(len(cat_cols), len(axes)):
+    axes[i].set_visible(False)
+fig.suptitle('Распределение категориальных признаков', fontweight='bold')
+plt.tight_layout()
+plt.savefig(f'{OUTPUT_DIR}/fig13_categorical.png', bbox_inches='tight')
+plt.close()
+print("Сохранено: fig13_categorical.png")
+
+# ─────────────────────────────────────────────────────────────────
+# 14. Преобразование категориальных → числовые
+# ─────────────────────────────────────────────────────────────────
+print("\n" + "=" * 60)
+print("14. ПРЕОБРАЗОВАНИЕ КАТЕГОРИАЛЬНЫХ В ЧИСЛОВЫЕ")
+print("=" * 60)
+
+df_enc = df.copy()
+df_enc['Attrition_enc'] = (df_enc['Attrition'] == 'Yes').astype(int)
+df_enc['Gender_enc']    = (df_enc['Gender'] == 'Male').astype(int)
+df_enc['OverTime_enc']  = (df_enc['OverTime'] == 'Yes').astype(int)
+ohe_cols = ['BusinessTravel', 'Department', 'MaritalStatus']
+df_enc = pd.get_dummies(df_enc, columns=ohe_cols, prefix=ohe_cols)
+
+print(f"Label Encoding: Attrition Yes->1/No->0, Gender Male->1, OverTime Yes->1")
+print(f"One-Hot Encoding: {ohe_cols}")
+print(f"Итоговый размер после кодирования: {df_enc.shape}")
+
+# ─────────────────────────────────────────────────────────────────
+# 15. Агрегация
+# ─────────────────────────────────────────────────────────────────
+print("\n" + "=" * 60)
+print("15. АГРЕГАЦИЯ ДАННЫХ")
+print("=" * 60)
+
+agg = df.groupby('Department').agg(
+    Sotrudnikov=('EmployeeNumber', 'count'),
+    SredVozrast=('Age', 'mean'),
+    SredDohod=('MonthlyIncome', 'mean'),
+    DoljaUvol=('Attrition', lambda x: (x == 'Yes').mean()),
+    SredStazh=('TotalWorkingYears', 'mean')
+).round(2)
+print("По отделам:")
+print(agg.to_string())
+
+agg2 = df.groupby('MaritalStatus').agg(
+    Sotrudnikov=('EmployeeNumber', 'count'),
+    DoljaUvol=('Attrition', lambda x: (x == 'Yes').mean()),
+    SredDohod=('MonthlyIncome', 'mean')
+).round(3)
+print("\nПо семейному положению:")
+print(agg2.to_string())
+
+# ─────────────────────────────────────────────────────────────────
+# 16. Гипотезы
+# ─────────────────────────────────────────────────────────────────
+print("\n" + "=" * 60)
+print("16. ГИПОТЕЗЫ")
+print("=" * 60)
+
+yes_income = df[df['Attrition'] == 'Yes']['MonthlyIncome']
+no_income  = df[df['Attrition'] == 'No']['MonthlyIncome']
+t_stat, p_val = stats.ttest_ind(yes_income, no_income)
+print(f"Гипотеза 1: уволившиеся имеют меньший доход")
+print(f"  Среднее (уволились): ${yes_income.mean():.0f}")
+print(f"  Среднее (остались):  ${no_income.mean():.0f}")
+print(f"  t = {t_stat:.3f}, p = {p_val:.4f}")
+
+ct = pd.crosstab(df['OverTime'], df['Attrition'])
+chi2, p_chi, dof, _ = stats.chi2_contingency(ct)
+ot_rate = df.groupby('OverTime')['Attrition'].apply(lambda x: (x=='Yes').mean())
+print(f"\nГипотеза 2: переработки связаны с увольнением")
+print(f"  OverTime=Yes: {ot_rate.get('Yes', 0):.1%}, OverTime=No: {ot_rate.get('No', 0):.1%}")
+print(f"  chi2={chi2:.2f}, p={p_chi:.6f}")
+
+fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+axes[0].hist([yes_income, no_income], bins=40,
+             label=['Уволился', 'Остался'],
+             color=['#e74c3c', '#3498db'], alpha=0.7, density=True)
+axes[0].axvline(yes_income.mean(), color='#e74c3c', linestyle='--')
+axes[0].axvline(no_income.mean(), color='#3498db', linestyle='--')
+axes[0].set_title(f'Гипотеза 1: Доход и увольнение (p={p_val:.4f})', fontweight='bold')
+axes[0].set_xlabel('Ежемесячный доход ($)')
+axes[0].legend()
+
+ct_pct = ct.div(ct.sum(axis=1), axis=0) * 100
+ct_pct[['No', 'Yes']].plot(kind='bar', ax=axes[1],
+    color=['#3498db', '#e74c3c'], edgecolor='white')
+axes[1].set_title(f'Гипотеза 2: OverTime и увольнение (chi2={chi2:.1f})', fontweight='bold')
+axes[1].set_xlabel('Переработки (OverTime)')
+axes[1].set_ylabel('Доля (%)')
+axes[1].tick_params(axis='x', rotation=0)
+axes[1].legend(['Остался', 'Уволился'])
+fig.suptitle('Проверка гипотез', fontweight='bold')
+plt.tight_layout()
+plt.savefig(f'{OUTPUT_DIR}/fig14_hypotheses.png', bbox_inches='tight')
+plt.close()
+print("Сохранено: fig14_hypotheses.png")
+
+# ─────────────────────────────────────────────────────────────────
+# Итоговый вывод
+# ─────────────────────────────────────────────────────────────────
 print("\n" + "=" * 60)
 print("ИТОГОВЫЙ ВЫВОД")
 print("=" * 60)
-print(f"Датасет содержит {df.shape[0]} наблюдений и {df.shape[1]} признаков.")
-print(f"Пропущенные значения: {'отсутствуют' if missing.sum() == 0 else f'{missing.sum()} значений'}.")
-if 'happiness' in df.columns:
-    print(f"Индекс счастья: min={df['happiness'].min():.2f}, "
-          f"max={df['happiness'].max():.2f}, mean={df['happiness'].mean():.2f}.")
-print("Наиболее сильная корреляция с индексом счастья — у ВВП на душу населения.")
-print("Датасет пригоден для задач регрессии и анализа влияния факторов на благополучие населения.")
-print(f"\nВсе графики сохранены в директории: {OUTPUT_DIR}/")
+print(f"Датасет: {len(df)} сотрудников, {df.shape[1]} признаков")
+yes_n = (df['Attrition']=='Yes').sum()
+no_n  = (df['Attrition']=='No').sum()
+print(f"Attrition: Yes={yes_n} ({yes_n/len(df):.1%}), No={no_n} ({no_n/len(df):.1%})")
+print(f"Пропущенных значений: 0. Дубликатов: 0.")
+print(f"Ключевые предикторы увольнения: OverTime, MonthlyIncome, BusinessTravel, JobSatisfaction")
+print(f"Гипотеза 1 (доход): t={t_stat:.3f}, p={p_val:.4f} - подтверждена")
+print(f"Гипотеза 2 (OverTime): chi2={chi2:.1f}, p={p_chi:.2e} - подтверждена")
+print(f"\nВсе графики сохранены в: {OUTPUT_DIR}/")

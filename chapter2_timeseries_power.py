@@ -26,6 +26,17 @@ from statsmodels.tsa.seasonal import seasonal_decompose
 OUTPUT_DIR = 'plots/chapter2'
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+import matplotlib
+matplotlib.rcParams.update({
+    'font.size': 13,
+    'axes.titlesize': 15,
+    'axes.labelsize': 13,
+    'xtick.labelsize': 12,
+    'ytick.labelsize': 12,
+    'legend.fontsize': 11,
+    'figure.titlesize': 16,
+})
+
 DATA_PATH = 'data/power/powerconsumption.csv'
 
 # ─────────────────────────────────────────────────────────────────
@@ -76,7 +87,7 @@ if len(channels) == 1:
 colors = plt.cm.tab10.colors
 for ax, ch, color in zip(axes, channels, colors):
     ax.plot(df.index, df[ch], linewidth=0.5, color=color, alpha=0.8)
-    ax.set_ylabel(ch, fontsize=9)
+    ax.set_ylabel(ch, fontsize=12)
     ax.grid(True, alpha=0.3)
 
 axes[0].set_title('Временные ряды 8 каналов датасета Power Consumption of Tetouan City',
@@ -191,7 +202,7 @@ components = [
 ]
 for ax, (data, label) in zip(axes, components):
     ax.plot(data.index, data.values, linewidth=0.8, color='steelblue')
-    ax.set_ylabel(label, fontsize=9)
+    ax.set_ylabel(label, fontsize=12)
     ax.grid(True, alpha=0.3)
 axes[0].set_title(
     'Декомпозиция Zone 1 Power Consumption (тренд, сезонность, остатки)',
