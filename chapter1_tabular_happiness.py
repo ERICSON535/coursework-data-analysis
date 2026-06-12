@@ -132,9 +132,15 @@ if high_corr_pairs:
     for a, b, r in high_corr_pairs:
         print(f"  {a} ↔ {b}: r = {r}")
 
+ru_labels = {
+    'happiness': 'Счастье', 'gdp': 'ВВП',
+    'social_support': 'Соц. поддержка', 'life_expectancy': 'Продолж. жизни',
+    'freedom': 'Свобода', 'generosity': 'Щедрость', 'corruption': 'Коррупция'
+}
+corr_plot = corr_matrix.rename(index=ru_labels, columns=ru_labels)
 fig, ax = plt.subplots(figsize=(9, 7))
-mask = np.triu(np.ones_like(corr_matrix, dtype=bool))
-sns.heatmap(corr_matrix, annot=True, fmt='.2f', cmap='coolwarm', center=0,
+mask = np.triu(np.ones_like(corr_plot, dtype=bool))
+sns.heatmap(corr_plot, annot=True, fmt='.2f', cmap='coolwarm', center=0,
             mask=mask, ax=ax, square=True, linewidths=0.5,
             cbar_kws={'shrink': 0.8})
 ax.set_title('Корреляционная матрица\nWorld Happiness Report 2021', fontsize=13, fontweight='bold')
