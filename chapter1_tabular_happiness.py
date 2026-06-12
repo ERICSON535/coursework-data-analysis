@@ -1,11 +1,11 @@
 """
 Глава 1. Первичный анализ набора табличных данных
-Датасет: World Happiness Report 2015–2021
+Датасет: World Happiness Report 2021
 Источник: https://www.kaggle.com/datasets/mathurinache/world-happiness-report
 
 Инструкция по загрузке:
-  Файлы по годам (2015.csv – 2021.csv) должны лежать в папке data/
-  Датасет объединяется автоматически при запуске скрипта.
+  kaggle datasets download -d mathurinache/world-happiness-report
+  Распакуйте в папку data/, нужен файл data/2021.csv
 """
 
 import os
@@ -21,46 +21,31 @@ matplotlib.rcParams['figure.dpi'] = 100
 OUTPUT_DIR = 'plots/chapter1'
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+DATA_PATH = 'data/2021.csv'
+
 # ── 1. Загрузка данных ─────────────────────────────────────────────────────────
 print("=" * 60)
 print("1. ЗАГРУЗКА ДАННЫХ")
 print("=" * 60)
 
-def load_year(year):
-    path = f'data/{year}.csv'
-    df = pd.read_csv(path)
-    # Точное сопоставление столбцов — без подстрок, чтобы не захватить "Explained by: ..."
-    exact_map = {
-        'Country': 'country', 'Country name': 'country', 'Country or region': 'country',
-        'Region': 'region', 'Regional indicator': 'region',
-        'Happiness Score': 'happiness', 'Happiness.Score': 'happiness',
-        'Score': 'happiness', 'Ladder score': 'happiness',
-        'Economy (GDP per Capita)': 'gdp', 'Economy..GDP.per.Capita.': 'gdp',
-        'GDP per capita': 'gdp', 'Logged GDP per capita': 'gdp',
-        'Family': 'social_support', 'Social support': 'social_support',
-        'Health (Life Expectancy)': 'life_expectancy',
-        'Health..Life.Expectancy.': 'life_expectancy',
-        'Healthy life expectancy': 'life_expectancy',
-        'Freedom': 'freedom', 'Freedom to make life choices': 'freedom',
-        'Generosity': 'generosity',
-        'Trust (Government Corruption)': 'corruption',
-        'Trust..Government.Corruption.': 'corruption',
-        'Perceptions of corruption': 'corruption',
-    }
-    rename = {c: exact_map[c] for c in df.columns if c in exact_map}
-    df.rename(columns=rename, inplace=True)
-    df['year'] = year
-    keep = [c for c in ['country', 'region', 'happiness', 'gdp',
-                         'social_support', 'life_expectancy', 'freedom',
-                         'generosity', 'corruption', 'year'] if c in df.columns]
-    return df[keep]
+df = pd.read_csv(DATA_PATH)
 
-frames = [load_year(y) for y in range(2015, 2022)]
-df = pd.concat(frames, ignore_index=True)
-
-# Заполним регион из ближайшего года где он известен
-region_map = df.dropna(subset=['region']).groupby('country')['region'].first()
-df['region'] = df['region'].fillna(df['country'].map(region_map))
+rename_map = {
+    'Country name': 'country', 'Regional indicator': 'region',
+    'Ladder score': 'happiness', 'Logged GDP per capita': 'gdp',
+    'Social support': 'social_support', 'Healthy life expectancy': 'life_expectancy',
+    'Freedom to make life choices': 'freedom', 'Generosity': 'generosity',
+    'Perceptions of corruption': 'corruption',
+    'Ladder score in Dystopia': 'dystopia_ladder',
+    'Explained by: Log GDP per capita': 'expl_gdp',
+    'Explained by: Social support': 'expl_social',
+    'Explained by: Healthy life expectancy': 'expl_life',
+    'Explained by: Freedom to make life choices': 'expl_freedom',
+    'Explained by: Generosity': 'expl_generosity',
+    'Explained by: Perceptions of corruption': 'expl_corruption',
+    'Dystopia + residual': 'dystopia_residual',
+}
+df.rename(columns={k: v for k, v in rename_map.items() if k in df.columns}, inplace=True)
 
 print(f"Размер датасета: {df.shape[0]} строк × {df.shape[1]} столбцов")
 print(f"\nПервые 5 строк:")
@@ -86,8 +71,7 @@ print("\n" + "=" * 60)
 print("3. ОПИСАТЕЛЬНАЯ СТАТИСТИКА")
 print("=" * 60)
 
-# gdp исключён: в 2015–2019 это суб-балл (0–2), в 2020–2021 — логарифм ВВП (8–12), шкалы несовместимы
-num_cols = ['happiness', 'social_support', 'life_expectancy',
+num_cols = ['happiness', 'gdp', 'social_support', 'life_expectancy',
             'freedom', 'generosity', 'corruption']
 num_cols = [c for c in num_cols if c in df.columns]
 print(df[num_cols].describe().round(3))
@@ -102,9 +86,9 @@ fig.suptitle('Распределения числовых признаков\nWo
              fontsize=14, fontweight='bold')
 
 col_titles = {
-    'happiness': 'Индекс счастья', 'social_support': 'Соц. поддержка',
-    'life_expectancy': 'Продолж. жизни', 'freedom': 'Свобода',
-    'generosity': 'Щедрость', 'corruption': 'Коррупция'
+    'happiness': 'Индекс счастья', 'gdp': 'ВВП на душу (log)',
+    'social_support': 'Соц. поддержка', 'life_expectancy': 'Продолж. жизни',
+    'freedom': 'Свобода', 'generosity': 'Щедрость', 'corruption': 'Коррупция'
 }
 
 for ax, col in zip(axes.flatten(), num_cols[:6]):
@@ -148,9 +132,9 @@ if high_corr_pairs:
         print(f"  {a} ↔ {b}: r = {r}")
 
 ru_labels = {
-    'happiness': 'Счастье', 'social_support': 'Соц. поддержка',
-    'life_expectancy': 'Продолж. жизни', 'freedom': 'Свобода',
-    'generosity': 'Щедрость', 'corruption': 'Коррупция'
+    'happiness': 'Счастье', 'gdp': 'ВВП',
+    'social_support': 'Соц. поддержка', 'life_expectancy': 'Продолж. жизни',
+    'freedom': 'Свобода', 'generosity': 'Щедрость', 'corruption': 'Коррупция'
 }
 corr_plot = corr_matrix.rename(index=ru_labels, columns=ru_labels)
 fig, ax = plt.subplots(figsize=(9, 7))
