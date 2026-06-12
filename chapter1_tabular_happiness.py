@@ -261,7 +261,7 @@ for ax, col in zip(axes, num_cols):
     ax.boxplot(df[col].dropna(), patch_artist=True,
                boxprops=dict(facecolor='lightcyan', color='steelblue'),
                medianprops=dict(color='red', linewidth=2))
-    ax.set_title(col.replace('_', ' ').title(), fontsize=8)
+    ax.set_title(col_titles.get(col, col.replace('_', ' ').title()), fontsize=8)
     ax.set_xticks([])
 fig.suptitle('Ящики с усами: выявление выбросов\nWorld Happiness Report 2021',
              fontsize=13, fontweight='bold')
