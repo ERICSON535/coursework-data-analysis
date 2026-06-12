@@ -156,8 +156,11 @@ if 'region' in df.columns and 'happiness' in df.columns:
 
     fig, ax = plt.subplots(figsize=(13, 6))
     region_order = region_stats.index.tolist()
-    bp = df.boxplot(column='happiness', by='region', ax=ax,
-                    order=region_order, patch_artist=True,
+    df_sorted = df.copy()
+    df_sorted['region'] = pd.Categorical(df_sorted['region'], categories=region_order, ordered=True)
+    df_sorted = df_sorted.sort_values('region')
+    bp = df_sorted.boxplot(column='happiness', by='region', ax=ax,
+                    patch_artist=True,
                     boxprops=dict(facecolor='lightblue', color='navy'),
                     medianprops=dict(color='red', linewidth=2),
                     whiskerprops=dict(color='navy'),
