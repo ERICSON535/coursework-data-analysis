@@ -279,7 +279,8 @@ pp_cols1 = [c for c in ['happiness', 'gdp', 'social_support'] if c in df.columns
 pp_cols2 = [c for c in ['happiness', 'life_expectancy', 'freedom', 'generosity'] if c in df.columns]
 
 # PairPlot 1: счастье, ВВП, соц. поддержка
-g1 = sns.pairplot(df[pp_cols1].dropna(), diag_kind='kde', plot_kws={'alpha': 0.6, 'color': 'steelblue'})
+df_pp1 = df[pp_cols1].dropna().rename(columns=ru_labels)
+g1 = sns.pairplot(df_pp1, diag_kind='kde', plot_kws={'alpha': 0.6, 'color': 'steelblue'})
 g1.fig.suptitle('Попарные диаграммы рассеяния: счастье, ВВП, социальная поддержка',
                 y=1.02, fontsize=11, fontweight='bold')
 g1.fig.savefig(f'{OUTPUT_DIR}/fig7_pairplot1.png', bbox_inches='tight')
@@ -287,7 +288,8 @@ plt.close('all')
 print(f"Сохранено: {OUTPUT_DIR}/fig7_pairplot1.png")
 
 # PairPlot 2: счастье, продолж. жизни, свобода, щедрость
-g2 = sns.pairplot(df[pp_cols2].dropna(), diag_kind='hist', plot_kws={'alpha': 0.6, 'color': 'darkorange'})
+df_pp2 = df[pp_cols2].dropna().rename(columns=ru_labels)
+g2 = sns.pairplot(df_pp2, diag_kind='hist', plot_kws={'alpha': 0.6, 'color': 'darkorange'})
 g2.fig.suptitle('Попарные диаграммы рассеяния: счастье, продолжительность жизни, свобода, щедрость',
                 y=1.02, fontsize=11, fontweight='bold')
 g2.fig.savefig(f'{OUTPUT_DIR}/fig8_pairplot2.png', bbox_inches='tight')
@@ -296,23 +298,23 @@ print(f"Сохранено: {OUTPUT_DIR}/fig8_pairplot2.png")
 
 # PairPlot 3: с разбивкой по укрупнённым регионам (hue)
 if 'region' in df.columns:
-    df_pp = df[pp_cols1 + ['region']].dropna().copy()
-    # Упрощаем названия регионов до коротких меток
+    df_pp3 = df[pp_cols1 + ['region']].dropna().copy()
     region_short = {
-        'Western Europe': 'W.Europe',
-        'North America and ANZ': 'N.America/ANZ',
-        'Middle East and North Africa': 'MENA',
-        'Latin America and Caribbean': 'Lat.America',
-        'Central and Eastern Europe': 'E.Europe',
-        'East Asia': 'E.Asia',
-        'Southeast Asia': 'SE.Asia',
-        'Commonwealth of Independent States': 'CIS',
-        'Sub-Saharan Africa': 'Sub-Sah.Africa',
-        'South Asia': 'S.Asia',
+        'Western Europe': 'Зап. Европа',
+        'North America and ANZ': 'С. Америка/АНЗ',
+        'Middle East and North Africa': 'БВСА',
+        'Latin America and Caribbean': 'Лат. Америка',
+        'Central and Eastern Europe': 'Вост. Европа',
+        'East Asia': 'Вост. Азия',
+        'Southeast Asia': 'ЮВ Азия',
+        'Commonwealth of Independent States': 'СНГ',
+        'Sub-Saharan Africa': 'Африка ЮС',
+        'South Asia': 'Юж. Азия',
     }
-    df_pp['region_short'] = df_pp['region'].map(region_short).fillna(df_pp['region'])
-    g3 = sns.pairplot(df_pp[pp_cols1 + ['region_short']], hue='region_short',
-                      diag_kind='kde', plot_kws={'alpha': 0.55}, height=2.2)
+    df_pp3['Регион'] = df_pp3['region'].map(region_short).fillna(df_pp3['region'])
+    df_pp3 = df_pp3[pp_cols1 + ['Регион']].rename(columns=ru_labels)
+    g3 = sns.pairplot(df_pp3, hue='Регион', diag_kind='kde',
+                      plot_kws={'alpha': 0.55}, height=2.2)
     g3.fig.suptitle('Попарные диаграммы рассеяния с разбивкой по регионам мира',
                     y=1.02, fontsize=11, fontweight='bold')
     g3.fig.savefig(f'{OUTPUT_DIR}/fig9_pairplot3.png', bbox_inches='tight')
