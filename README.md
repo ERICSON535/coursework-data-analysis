@@ -13,7 +13,7 @@
 
 | Файл | Описание | Набор данных |
 |------|----------|-------------|
-| `chapter1_tabular_happiness.py` | Глава 1. Первичный анализ табличных данных | IBM HR Analytics Employee Attrition ([Kaggle](https://www.kaggle.com/datasets/pavansubhasht/ibm-hr-analytics-attrition-dataset)) |
+| `chapter1_tabular_hr.py` | Глава 1. Первичный анализ табличных данных | IBM HR Analytics Employee Attrition ([Kaggle](https://www.kaggle.com/datasets/pavansubhasht/ibm-hr-analytics-attrition-dataset)) |
 | `chapter2_timeseries_power.py` | Глава 2. Первичный анализ данных временных рядов | Power Consumption of Tetouan City ([Kaggle](https://www.kaggle.com/datasets/fedesoriano/electric-power-consumption)) |
 | `chapter3_images_xray.py` | Глава 3. Первичный анализ данных изображений | Chest X-Ray Images (Pneumonia) ([Kaggle](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia)) |
 | `chapter4_text_bbc.py` | Глава 4. Первичный анализ текстовых данных | BBC News Classification ([Kaggle](https://www.kaggle.com/datasets/alfathterry91/bbc-news-classification)) |
@@ -90,7 +90,7 @@ kaggle datasets download -d alfathterry91/bbc-news-classification -p data/ --unz
 ## Запуск
 
 ```bash
-python chapter1_tabular_happiness.py
+python chapter1_tabular_hr.py
 python chapter2_timeseries_power.py
 python chapter3_images_xray.py
 python chapter4_text_bbc.py
