@@ -89,14 +89,20 @@ print("4. ВИЗУАЛИЗАЦИЯ РАСПРЕДЕЛЕНИЙ")
 print("=" * 60)
 
 fig, axes = plt.subplots(2, 3, figsize=(15, 9))
-fig.suptitle('Распределения числовых признаков\nWorld Happiness Report 2021',
+fig.suptitle('Распределения числовых признаков\nWorld Happiness Report 2015–2021',
              fontsize=14, fontweight='bold')
+
+col_titles = {
+    'happiness': 'Индекс счастья', 'gdp': 'ВВП на душу (log)',
+    'social_support': 'Соц. поддержка', 'life_expectancy': 'Продолж. жизни',
+    'freedom': 'Свобода', 'generosity': 'Щедрость', 'corruption': 'Коррупция'
+}
 
 for ax, col in zip(axes.flatten(), num_cols[:6]):
     ax.hist(df[col].dropna(), bins=25, color='steelblue', edgecolor='white', alpha=0.85)
     ax.axvline(df[col].mean(), color='red', linestyle='--', linewidth=1.5, label=f'Среднее: {df[col].mean():.2f}')
     ax.axvline(df[col].median(), color='orange', linestyle='--', linewidth=1.5, label=f'Медиана: {df[col].median():.2f}')
-    ax.set_title(col.replace('_', ' ').title())
+    ax.set_title(col_titles.get(col, col.replace('_', ' ').title()))
     ax.set_xlabel('Значение')
     ax.set_ylabel('Количество стран')
     ax.legend(fontsize=8)
