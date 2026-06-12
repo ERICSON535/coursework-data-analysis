@@ -60,7 +60,7 @@ print("=" * 60)
 
 class_counts = df['class'].value_counts()
 print(class_counts)
-ratio = class_counts[0] / class_counts[1]
+ratio = class_counts.iloc[0] / class_counts.iloc[1]
 print(f"Соотношение классов: {ratio:.2f}:1 ({'дисбаланс классов' if ratio > 1.5 else 'сбалансировано'})")
 
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
