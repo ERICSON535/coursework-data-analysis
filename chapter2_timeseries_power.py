@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Глава 2. Первичный анализ набора данных с временными рядами
 Датасет: Power Consumption of Tetouan City
@@ -77,6 +77,10 @@ df.rename(columns={c: rename_map[_norm(c)] for c in df.columns
 
 channels = ['temperature', 'humidity', 'wind_speed', 'gen_diffuse', 'diffuse',
             'zone1', 'zone2', 'zone3']
+# пять основных каналов — для графиков временных рядов и диаграмм размаха
+# (метеорологические потоки отличаются по масштабу на 2-3 порядка)
+MAIN_CHANNELS = ['temperature', 'humidity', 'zone1', 'zone2', 'zone3']
+
 missing = [c for c in channels if c not in df.columns]
 if missing:
     raise KeyError(f'В CSV не найдены каналы: {missing}. '
@@ -95,12 +99,12 @@ print("\n" + "=" * 60)
 print("2.3.2  Визуализация временных рядов")
 print("=" * 60)
 
-fig, axes = plt.subplots(len(channels), 1, figsize=(14, 2.5 * len(channels)), sharex=True)
-if len(channels) == 1:
+fig, axes = plt.subplots(len(MAIN_CHANNELS), 1, figsize=(14, 2.5 * len(MAIN_CHANNELS)), sharex=True)
+if len(MAIN_CHANNELS) == 1:
     axes = [axes]
 
 colors = plt.cm.tab10.colors
-for ax, ch, color in zip(axes, channels, colors):
+for ax, ch, color in zip(axes, MAIN_CHANNELS, colors):
     ax.plot(df.index, df[ch], linewidth=0.5, color=color, alpha=0.8)
     ax.set_ylabel(ch, fontsize=12)
     ax.grid(True, alpha=0.3)
@@ -130,7 +134,7 @@ fig, axes = plt.subplots(1, 2, figsize=(16, 6))
 ax = axes[0]
 ax.axis('off')
 table_data = [['Канал', 'Среднее', 'Std', 'Мин', 'Макс']]
-for ch in channels:
+for ch in MAIN_CHANNELS:
     row = [ch, f"{df[ch].mean():.1f}", f"{df[ch].std():.1f}",
            f"{df[ch].min():.1f}", f"{df[ch].max():.1f}"]
     table_data.append(row)
@@ -142,11 +146,11 @@ ax.set_title('Описательная статистика', fontweight='bold')
 
 # Диаграммы размаха
 # в matplotlib >= 3.9 параметр labels переименован в tick_labels
-_box_data = [df[ch].dropna().values for ch in channels]
+_box_data = [df[ch].dropna().values for ch in MAIN_CHANNELS]
 try:
-    axes[1].boxplot(_box_data, tick_labels=channels, vert=True)
+    axes[1].boxplot(_box_data, tick_labels=MAIN_CHANNELS, vert=True)
 except TypeError:
-    axes[1].boxplot(_box_data, labels=channels, vert=True)
+    axes[1].boxplot(_box_data, labels=MAIN_CHANNELS, vert=True)
 axes[1].set_title('Диаграммы размаха по каналам', fontweight='bold')
 axes[1].tick_params(axis='x', rotation=30)
 axes[1].grid(True, alpha=0.3, axis='y')
@@ -207,14 +211,14 @@ print("\n" + "=" * 60)
 print("2.3.7  Декомпозиция и анализ шума (SNR)")
 print("=" * 60)
 
-zone1_daily = df['zone1'].resample('h').mean().dropna()  # агрегация до часового шага
-period = 24  # суточный цикл: 24 часовых отсчёта
+zone1_series = df['zone1'].dropna()
+period = 144  # суточный цикл: 144 отсчёта по 10 минут = 24 ч
 
-decomp = seasonal_decompose(zone1_daily, model='additive', period=period)
+decomp = seasonal_decompose(zone1_series, model='additive', period=period)
 
 fig, axes = plt.subplots(4, 1, figsize=(14, 10), sharex=True)
 components = [
-    (zone1_daily, 'Исходный ряд (Zone 1)'),
+    (zone1_series, 'Исходный ряд (Zone 1)'),
     (decomp.trend, 'Тренд'),
     (decomp.seasonal, 'Сезонность'),
     (decomp.resid, 'Остатки'),
@@ -239,7 +243,8 @@ fig, ax = plt.subplots(figsize=(8, 5))
 ax.hist(resid.values, bins=60, edgecolor='black', alpha=0.7, color='steelblue')
 ax.set_xlabel('Остатки')
 ax.set_ylabel('Частота')
-ax.set_title('Гистограмма остатков декомпозиции Zone 1',
+ax.set_title(f'Гистограмма остатков декомпозиции Zone 1\n'
+             f'(period={period}, skewness={stats.skew(resid.values):.3f})',
              fontsize=11, fontweight='bold')
 skewness = stats.skew(resid.values)
 ax.axvline(0, color='red', linestyle='--', linewidth=1.5, label=f'0 (skewness={skewness:.3f})')
@@ -264,12 +269,12 @@ elif snr_db >= 0:
 else:
     print("Оценка: «Плохо» — необходима предобработка")
 
-# Выбросы на временном ряду Zone 1 (часовой)
-mu, sigma = zone1_daily.mean(), zone1_daily.std()
-is_outlier = (zone1_daily - mu).abs() > 3 * sigma
+# Выбросы на временном ряду Zone 1
+mu, sigma = zone1_series.mean(), zone1_series.std()
+is_outlier = (zone1_series - mu).abs() > 3 * sigma
 fig, ax = plt.subplots(figsize=(14, 5))
-ax.plot(zone1_daily.index, zone1_daily.values, linewidth=0.6, color='steelblue', label='Zone 1')
-ax.scatter(zone1_daily[is_outlier].index, zone1_daily[is_outlier].values,
+ax.plot(zone1_series.index, zone1_series.values, linewidth=0.6, color='steelblue', label='Zone 1')
+ax.scatter(zone1_series[is_outlier].index, zone1_series[is_outlier].values,
            color='red', s=20, zorder=5, label=f'Выбросы ({is_outlier.sum()})')
 ax.set_ylabel('Потребление, кВт')
 ax.set_title('Выбросы Zone 1 по критерию 3σ (временная привязка)',
@@ -309,7 +314,7 @@ ax.set_title('Автокорреляционная функция Zone 1 Power C
              fontsize=11, fontweight='bold')
 ax.grid(True, alpha=0.3)
 plt.tight_layout()
-plt.savefig(f'{OUTPUT_DIR}/fig12_acf_zone1.png', dpi=150, bbox_inches='tight')
+plt.savefig(f'{OUTPUT_DIR}/fig13_acf_zone1.png', dpi=150, bbox_inches='tight')
 plt.close()
 print("График ACF сохранён.")
 
