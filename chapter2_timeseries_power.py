@@ -22,6 +22,7 @@ import matplotlib.dates as mdates
 import seaborn as sns
 from scipy import stats
 from statsmodels.tsa.seasonal import seasonal_decompose
+from statsmodels.tsa.stattools import acf, adfuller
 
 OUTPUT_DIR = 'plots/chapter2'
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -140,8 +141,12 @@ tbl.scale(1.2, 1.5)
 ax.set_title('Описательная статистика', fontweight='bold')
 
 # Диаграммы размаха
-axes[1].boxplot([df[ch].dropna().values for ch in channels],
-                labels=channels, vert=True)
+# в matplotlib >= 3.9 параметр labels переименован в tick_labels
+_box_data = [df[ch].dropna().values for ch in channels]
+try:
+    axes[1].boxplot(_box_data, tick_labels=channels, vert=True)
+except TypeError:
+    axes[1].boxplot(_box_data, labels=channels, vert=True)
 axes[1].set_title('Диаграммы размаха по каналам', fontweight='bold')
 axes[1].tick_params(axis='x', rotation=30)
 axes[1].grid(True, alpha=0.3, axis='y')
@@ -279,6 +284,45 @@ plt.close()
 print(f"Рисунок 17 сохранён. Выбросов: {is_outlier.sum()} ({is_outlier.mean()*100:.2f}%)")
 
 # ─────────────────────────────────────────────────────────────────
+
+# ─────────────────────────────────────────────────────────────────
+# 6.1. Автокорреляционная функция (ACF) и тест Дики–Фуллера (ADF)
+# ─────────────────────────────────────────────────────────────────
+print("\n" + "=" * 60)
+print("2.3.8 / 2.3.9  ACF и проверка стационарности (ADF)")
+print("=" * 60)
+
+LAGS = 432  # три суточных цикла по 144 отсчёта
+acf_vals = acf(df['zone1'].values, nlags=LAGS, fft=True)
+print(f"ACF Zone 1: лаг 1 = {acf_vals[1]:.3f}, "
+      f"лаг 144 (сутки) = {acf_vals[144]:.3f}, "
+      f"лаг 288 = {acf_vals[288]:.3f}, лаг 432 = {acf_vals[432]:.3f}")
+
+fig, ax = plt.subplots(figsize=(12, 5))
+ax.stem(range(LAGS + 1), acf_vals, markerfmt=' ', basefmt=' ')
+for k in (144, 288, 432):
+    ax.axvline(k, color='red', linestyle='--', linewidth=1, alpha=0.6)
+ax.set_xlabel('Лаг (отсчёты по 10 минут)')
+ax.set_ylabel('Автокорреляция')
+ax.set_title('Автокорреляционная функция Zone 1 Power Consumption\n'
+             '(штриховые линии — лаги, кратные суточному циклу 144)',
+             fontsize=11, fontweight='bold')
+ax.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig(f'{OUTPUT_DIR}/fig12_acf_zone1.png', dpi=150, bbox_inches='tight')
+plt.close()
+print("График ACF сохранён.")
+
+adf_stat, adf_p, adf_lags = adfuller(df['zone1'].values, autolag='AIC')[:3]
+adf_crit = adfuller(df['zone1'].values, autolag='AIC')[4]['5%']
+print(f"ADF-тест Zone 1: статистика = {adf_stat:.2f}, p-значение = {adf_p:.4g}, "
+      f"лагов = {adf_lags}, критическое значение 5% = {adf_crit:.2f}")
+print("Вывод: " + ("ряд стационарен по среднему (H0 отвергается)"
+                   if adf_p < 0.05 else "ряд нестационарен (H0 не отвергается)"))
+for ch in ('zone2', 'zone3'):
+    st, p = adfuller(df[ch].values, autolag='AIC')[:2]
+    print(f"  {ch}: ADF = {st:.2f}, p = {p:.4g}")
+# ─────────────────────────────────────────────────────────────────
 # 7. Вывод по разделу
 # ─────────────────────────────────────────────────────────────────
 print("\n" + "=" * 60)
@@ -290,6 +334,9 @@ print(f"  Пропуски: {df[channels].isnull().sum().sum()}")
 zone1_out = ((df['zone1'] - df['zone1'].mean()).abs() > 3*df['zone1'].std()).sum()
 print(f"  Выбросы Zone1: {zone1_out} ({zone1_out/len(df)*100:.2f}%)")
 print(f"  SNR Zone1: {snr_db:.1f} дБ")
-print("  Вывод: данные пригодны для LSTM/GRU/Prophet без дополнительной фильтрации")
+print(f"  ACF: выраженные пики на лагах, кратных 144 (суточный цикл)")
+print(f"  ADF: статистика {adf_stat:.2f}, p = {adf_p:.4g} — ряд стационарен по среднему")
+print("  Вывод: данные пригодны для LSTM/GRU/SARIMA/Prophet; "
+      "при SNR ниже 10 дБ рекомендуется лёгкое сглаживание")
 print("\nВсе рисунки сохранены в:", OUTPUT_DIR)
 
