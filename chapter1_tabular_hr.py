@@ -62,6 +62,28 @@ print("\n" + "=" * 60)
 print("2. ДИАГРАММЫ РАСПРЕДЕЛЕНИЯ ЧИСЛОВЫХ ПРИЗНАКОВ")
 print("=" * 60)
 
+
+# Распределения всех числовых признаков (кроме принимающих не более двух значений)
+dist_cols = [c for c in df.select_dtypes(include=[np.number]).columns
+            if df[c].nunique() > 2]
+n_cols = 6
+n_rows = -(-len(dist_cols) // n_cols)
+fig, axes = plt.subplots(n_rows, n_cols, figsize=(3.6 * n_cols, 2.8 * n_rows))
+axes = np.ravel(axes)
+for ax, col in zip(axes, dist_cols):
+    ax.hist(df[col], bins=30, color='steelblue', edgecolor='white', alpha=0.9)
+    ax.set_title(col, fontweight='bold', fontsize=10)
+    ax.set_ylabel('Частота', fontsize=8)
+    ax.tick_params(labelsize=8)
+for ax in axes[len(dist_cols):]:
+    ax.axis('off')
+fig.suptitle(f'Распределение числовых признаков — IBM HR Analytics (n = {len(df):,})'
+             .replace(',', '\u00a0'), fontweight='bold', fontsize=14)
+plt.tight_layout()
+plt.savefig(f'{OUTPUT_DIR}/fig0_all_distributions.png', bbox_inches='tight')
+plt.close()
+print(f"Сохранено: fig0_all_distributions.png ({len(dist_cols)} признаков)")
+
 key_num = ['Age', 'MonthlyIncome', 'DistanceFromHome', 'YearsAtCompany',
            'TotalWorkingYears', 'NumCompaniesWorked']
 
