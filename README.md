@@ -66,6 +66,7 @@
 
 ```bash
 pip install pandas numpy matplotlib seaborn scipy scikit-learn plotly
+pip install "kaleido>=1"                  # экспорт графиков Plotly в PNG
 pip install statsmodels                   # Глава 2 (декомпозиция, ADF)
 pip install Pillow                        # Глава 3 (обработка изображений)
 pip install nltk                          # Глава 4 (лемматизация, стоп-слова)
