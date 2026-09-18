@@ -50,22 +50,36 @@ df = pd.read_csv(DATA_PATH)
 df['Datetime'] = pd.to_datetime(df['Datetime'])
 df = df.set_index('Datetime').sort_index()
 
-# Краткие имена столбцов
+# Краткие имена столбцов. Датасет распространяется в двух вариантах именования:
+#   Kaggle — WindSpeed / GeneralDiffuseFlows / PowerConsumption_Zone1
+#   UCI    — "Wind Speed" / "general diffuse flows" / "Zone 1 Power Consumption"
+# Поэтому имена столбцов нормализуются перед сопоставлением.
+def _norm(name):
+    return name.strip().lower().replace(' ', '').replace('_', '')
+
+
 rename_map = {
-    'Temperature': 'temperature',
-    'Humidity': 'humidity',
-    'Wind Speed': 'wind_speed',
-    'general diffuse flows': 'gen_diffuse',
-    'diffuse flows': 'diffuse',
-    'PowerConsumption_Zone1': 'zone1',
-    'PowerConsumption_Zone2': 'zone2',
-    'PowerConsumption_Zone3': 'zone3',
+    'temperature': 'temperature',
+    'humidity': 'humidity',
+    'windspeed': 'wind_speed',
+    'generaldiffuseflows': 'gen_diffuse',
+    'diffuseflows': 'diffuse',
+    'powerconsumptionzone1': 'zone1',
+    'zone1powerconsumption': 'zone1',
+    'powerconsumptionzone2': 'zone2',
+    'zone2powerconsumption': 'zone2',
+    'powerconsumptionzone3': 'zone3',
+    'zone3powerconsumption': 'zone3',
 }
-df.rename(columns={k: v for k, v in rename_map.items() if k in df.columns}, inplace=True)
+df.rename(columns={c: rename_map[_norm(c)] for c in df.columns
+                   if _norm(c) in rename_map}, inplace=True)
 
 channels = ['temperature', 'humidity', 'wind_speed', 'gen_diffuse', 'diffuse',
             'zone1', 'zone2', 'zone3']
-channels = [c for c in channels if c in df.columns]
+missing = [c for c in channels if c not in df.columns]
+if missing:
+    raise KeyError(f'В CSV не найдены каналы: {missing}. '
+                   f'Столбцы файла: {list(df.columns)}')
 
 print(f"Строки × столбцы: {df.shape}")
 print(f"Период: {df.index.min()} — {df.index.max()}")
@@ -188,8 +202,8 @@ print("\n" + "=" * 60)
 print("2.3.7  Декомпозиция и анализ шума (SNR)")
 print("=" * 60)
 
-zone1_daily = df['zone1'].resample('h').mean().dropna()  # часовой ресемпл
-period = 24  # суточный цикл в часах
+zone1_daily = df['zone1'].resample('h').mean().dropna()  # агрегация до часового шага
+period = 24  # суточный цикл: 24 часовых отсчёта
 
 decomp = seasonal_decompose(zone1_daily, model='additive', period=period)
 
@@ -236,12 +250,14 @@ signal_var = np.var(decomp.trend.dropna().values) + np.var(decomp.seasonal.dropn
 noise_var  = np.var(resid.values)
 snr_db = 10 * np.log10(signal_var / noise_var) if noise_var > 0 else float('inf')
 print(f"\nSNR = 10·log10({signal_var:.0f} / {noise_var:.0f}) ≈ {snr_db:.1f} дБ")
-if snr_db >= 15:
-    print("Оценка: «Отлично» — данные пригодны без дополнительной фильтрации")
+if snr_db >= 20:
+    print("Оценка: «Отлично» — сглаживание не требуется")
 elif snr_db >= 10:
-    print("Оценка: «Хорошо»")
-else:
+    print("Оценка: «Хорошо» — лёгкое сглаживание (опционально)")
+elif snr_db >= 0:
     print("Оценка: «Удовлетворительно» — рекомендуется сглаживание")
+else:
+    print("Оценка: «Плохо» — необходима предобработка")
 
 # Выбросы на временном ряду Zone 1 (часовой)
 mu, sigma = zone1_daily.mean(), zone1_daily.std()

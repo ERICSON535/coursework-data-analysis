@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from collections import Counter
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 OUTPUT_DIR = 'plots/chapter4'
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -138,11 +139,58 @@ def clean_text(text):
     tokens = text.split()
     return [t for t in tokens if t not in STOP_WORDS and len(t) > 2]
 
-df['tokens'] = df['text'].apply(clean_text)
+# ── 4.1. Лемматизация (WordNetLemmatizer + POS-tagging) ──────────────────────
+try:
+    import nltk
+    from nltk.stem import WordNetLemmatizer
+    from nltk.corpus import wordnet
+    for _pkg in ('wordnet', 'omw-1.4', 'averaged_perceptron_tagger',
+                 'averaged_perceptron_tagger_eng'):
+        try:
+            nltk.download(_pkg, quiet=True)
+        except Exception:
+            pass
+    _lemmatizer = WordNetLemmatizer()
+    NLTK_OK = True
+except Exception as e:
+    _lemmatizer = None
+    NLTK_OK = False
+    print(f'ВНИМАНИЕ: NLTK недоступен ({e}) — лемматизация пропущена')
+
+
+def _wordnet_pos(treebank_tag):
+    """Penn Treebank POS-метка -> формат WordNet."""
+    if treebank_tag.startswith('J'):
+        return wordnet.ADJ
+    if treebank_tag.startswith('V'):
+        return wordnet.VERB
+    if treebank_tag.startswith('R'):
+        return wordnet.ADV
+    return wordnet.NOUN
+
+
+def lemmatize(tokens):
+    """Лемматизация списка токенов с учётом части речи."""
+    if not NLTK_OK or not tokens:
+        return tokens
+    try:
+        tagged = nltk.pos_tag(tokens)
+    except Exception:
+        return [_lemmatizer.lemmatize(t) for t in tokens]
+    return [_lemmatizer.lemmatize(t, _wordnet_pos(tag)) for t, tag in tagged]
+
+
+df['tokens_raw'] = df['text'].apply(clean_text)
+vocab_raw = len(set(w for tokens in df['tokens_raw'] for w in tokens))
+df['tokens'] = df['tokens_raw'].apply(lemmatize)
+# лемматизированный текст — основа для частотного анализа, TF-IDF и BoW
+df['text_lemmas'] = df['tokens'].apply(' '.join)
+print(f"Объём словаря до лемматизации: {vocab_raw} уникальных слов")
 df['vocab_size'] = df['tokens'].apply(lambda x: len(set(x)))
 
 total_vocab = len(set(w for tokens in df['tokens'] for w in tokens))
-print(f"Общий объём словаря: {total_vocab} уникальных слов")
+print(f"Объём словаря после лемматизации: {total_vocab} уникальных лемм "
+      f"({(total_vocab - vocab_raw) / vocab_raw * 100:+.1f}%)")
 print(f"Среднее слов в статье: {df['word_count'].mean():.0f}")
 
 # Топ-20 слов на весь корпус
@@ -169,9 +217,9 @@ print("\n" + "=" * 60)
 print("5. TF-IDF МАТРИЦА И ХАРАКТЕРНЫЕ ТЕРМИНЫ ПО КАТЕГОРИЯМ")
 print("=" * 60)
 
-vectorizer = TfidfVectorizer(max_features=500, min_df=3, ngram_range=(1, 1),
+vectorizer = TfidfVectorizer(max_features=500, min_df=3, ngram_range=(1, 2),
                               stop_words='english', sublinear_tf=True)
-tfidf_matrix = vectorizer.fit_transform(df['text'])
+tfidf_matrix = vectorizer.fit_transform(df['text_lemmas'])
 print(f"TF-IDF матрица: {tfidf_matrix.shape[0]} документов × {tfidf_matrix.shape[1]} термов")
 print(f"Плотность матрицы: {tfidf_matrix.nnz / (tfidf_matrix.shape[0] * tfidf_matrix.shape[1]):.4f}")
 
@@ -208,7 +256,7 @@ print("7. BAG-OF-WORDS МАТРИЦА")
 print("=" * 60)
 
 cv = CountVectorizer(max_features=3000, min_df=2, stop_words='english')
-bow_matrix = cv.fit_transform(df['text'])
+bow_matrix = cv.fit_transform(df['text_lemmas'])
 print(f"BoW матрица: {bow_matrix.shape[0]} × {bow_matrix.shape[1]}")
 print(f"Среднее кол-во ненулевых слов в документе: {bow_matrix.nnz / bow_matrix.shape[0]:.1f}")
 print(f"Разреженность: {(1 - bow_matrix.nnz / (bow_matrix.shape[0] * bow_matrix.shape[1])) * 100:.1f}%")
@@ -239,7 +287,33 @@ plt.savefig(f'{OUTPUT_DIR}/fig5_bigrams.png', bbox_inches='tight')
 plt.close()
 print(f"Сохранено: {OUTPUT_DIR}/fig5_bigrams.png")
 
-# ── 9. Вывод ──────────────────────────────────────────────────────────────────
+
+# ── 9. Информационный поиск по корпусу ────────────────────────────────────────
+print("\n" + "=" * 60)
+print("9. ИНФОРМАЦИОННЫЙ ПОИСК ПО КОРПУСУ (TF-IDF + косинусное сходство)")
+print("=" * 60)
+
+
+def search(query, top_n=3):
+    """Поиск top_n наиболее релевантных документов корпуса по запросу.
+
+    Запрос проходит ту же предобработку и лемматизацию, что и документы,
+    преобразуется тем же векторизатором и сравнивается с документами
+    по косинусному сходству.
+    """
+    query_lemmas = ' '.join(lemmatize(clean_text(query)))
+    query_vec = vectorizer.transform([query_lemmas])
+    sims = cosine_similarity(query_vec, tfidf_matrix).ravel()
+    top_idx = sims.argsort()[::-1][:top_n]
+    return [(int(i), df['category'].iloc[i], float(sims[i])) for i in top_idx]
+
+
+for q in ('football match victory', 'stock market shares', 'election campaign'):
+    print(f"\nЗапрос: «{q}»")
+    for rank, (idx, cat, score) in enumerate(search(q), start=1):
+        snippet = df['text'].iloc[idx][:70].replace('\n', ' ')
+        print(f"  {rank}. [{cat}] сходство = {score:.3f} | {snippet}...")
+# ── 10. Вывод ──────────────────────────────────────────────────────────────────
 print("\n" + "=" * 60)
 print("ИТОГОВЫЙ ВЫВОД")
 print("=" * 60)

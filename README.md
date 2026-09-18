@@ -56,9 +56,9 @@
 - Корреляционный анализ
 - Специфические процедуры для каждого типа данных:
   - Гл. 1: IQR-выбросы, Seaborn violin/boxplot, Plotly, добавление шума, t-тест, χ²-тест
-  - Гл. 2: сезонная декомпозиция (STL), SNR, ACF/PACF, тест Дики–Фуллера (ADF)
+  - Гл. 2: сезонная декомпозиция (seasonal_decompose, аддитивная модель), SNR, ACF/PACF, тест Дики–Фуллера (ADF)
   - Гл. 3: распределение классов, яркость/контраст (mean/std пикселей), оценка качества разметки
-  - Гл. 4: TF-IDF, Bag-of-Words, биграммы, информационный поиск по корпусу
+  - Гл. 4: лемматизация (WordNetLemmatizer + POS-tagging), TF-IDF (n-граммы 1–2), Bag-of-Words, биграммы, информационный поиск по корпусу
 
 ---
 
@@ -66,9 +66,9 @@
 
 ```bash
 pip install pandas numpy matplotlib seaborn scipy scikit-learn plotly
-pip install statsmodels                   # Глава 2 (STL, ADF)
+pip install statsmodels                   # Глава 2 (декомпозиция, ADF)
 pip install Pillow                        # Глава 3 (обработка изображений)
-pip install nltk                          # Глава 4 (стоп-слова, стемминг)
+pip install nltk                          # Глава 4 (лемматизация, стоп-слова)
 ```
 
 ---
