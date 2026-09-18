@@ -167,8 +167,8 @@ print("=" * 60)
 
 pixel_stats = {}
 for cls in CLASSES:
-    subset = df[(df['class'] == cls) & (df['split'] == 'train')].sample(
-        min(50, len(df[df['class'] == cls])), random_state=42)
+    pool = df[(df['class'] == cls) & (df['split'] == 'train')]
+    subset = pool.sample(min(50, len(pool)), random_state=42)
     all_pixels = []
     for path in subset['path']:
         try:
@@ -203,8 +203,8 @@ print("=" * 60)
 
 mean_images = {}
 for cls in CLASSES:
-    subset = df[(df['class'] == cls) & (df['split'] == 'train')].sample(
-        min(100, len(df[df['class'] == cls])), random_state=42)
+    pool = df[(df['class'] == cls) & (df['split'] == 'train')]
+    subset = pool.sample(min(100, len(pool)), random_state=42)
     imgs = []
     for path in subset['path']:
         try:
@@ -243,8 +243,8 @@ print("=" * 60)
 
 brightness_data = []
 for cls in CLASSES:
-    subset = df[(df['class'] == cls) & (df['split'] == 'train')].sample(
-        min(200, len(df[df['class'] == cls])), random_state=42)
+    pool = df[(df['class'] == cls) & (df['split'] == 'train')]
+    subset = pool.sample(min(200, len(pool)), random_state=42)
     for path in subset['path']:
         try:
             img = np.array(Image.open(path).convert('L').resize(TARGET_SIZE), dtype=np.float32)
