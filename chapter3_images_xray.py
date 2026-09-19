@@ -40,6 +40,7 @@ DATA_DIR = 'data/chest_xray'
 SPLITS = ['train', 'test', 'val']
 CLASSES = ['NORMAL', 'PNEUMONIA']
 TARGET_SIZE = (224, 224)
+MIN_SIZE = 512  # минимальное разрешение по каждой стороне
 random.seed(42)
 np.random.seed(42)
 
@@ -58,7 +59,24 @@ for split in SPLITS:
         for f in files:
             all_images.append({'split': split, 'class': cls, 'path': os.path.join(folder, f)})
 
-df = pd.DataFrame(all_images)
+df_raw = pd.DataFrame(all_images)
+print(f"Найдено изображений: {len(df_raw)}")
+
+# Фильтрация по минимальному разрешению: снимки меньше MIN_SIZE по любой
+# стороне исключаются, чтобы приведение к 224x224 выполнялось только
+# уменьшением и не создавало ложной детализации.
+keep = []
+for path in df_raw['path']:
+    try:
+        with Image.open(path) as im:
+            w, h = im.size
+    except Exception:
+        keep.append(False)
+        continue
+    keep.append(w >= MIN_SIZE and h >= MIN_SIZE)
+
+df = df_raw[pd.Series(keep, index=df_raw.index)].reset_index(drop=True)
+print(f"Отброшено (меньше {MIN_SIZE}x{MIN_SIZE}): {len(df_raw) - len(df)}")
 print(f"Всего изображений: {len(df)}")
 print("\nРаспределение по split и классу:")
 pivot = df.groupby(['split', 'class']).size().unstack(fill_value=0)
