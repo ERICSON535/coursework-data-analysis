@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 Глава 1. Первичный анализ табличного датасета
 Датасет: IBM HR Analytics Employee Attrition & Performance
@@ -202,6 +202,21 @@ print("\n" + "=" * 60)
 print("5. ИНТЕРАКТИВНЫЕ ГРАФИКИ PLOTLY")
 print("=" * 60)
 
+def save_plotly(fig, path, width, height):
+    """Сохраняет интерактивный график Plotly.
+
+    PNG требует пакет kaleido; если его нет, сохраняем HTML — график
+    остаётся интерактивным и полностью просматриваемым в браузере.
+    """
+    try:
+        fig.write_image(path, width=width, height=height)
+        print('Сохранено: ' + os.path.basename(path))
+    except Exception as exc:
+        alt = path.rsplit('.', 1)[0] + '.html'
+        fig.write_html(alt)
+        print('Сохранено: ' + os.path.basename(alt) +
+              ' (PNG недоступен: ' + type(exc).__name__ + ')')
+
 fig_plotly = px.scatter(
     df, x='Age', y='MonthlyIncome',
     color='Attrition', size='YearsAtCompany',
@@ -210,16 +225,14 @@ fig_plotly = px.scatter(
     title='Возраст, доход и стаж сотрудников',
     labels={'Age': 'Возраст', 'MonthlyIncome': 'Доход ($)', 'Attrition': 'Уволился'}
 )
-fig_plotly.write_image(f'{OUTPUT_DIR}/fig7_plotly_bubble.png', width=1000, height=600)
-print("Сохранено: fig7_plotly_bubble.png")
+save_plotly(fig_plotly, f'{OUTPUT_DIR}/fig7_plotly_bubble.png', 1000, 600)
 
 df_agg = df.groupby(['Department', 'JobLevel'])['MonthlyIncome'].mean().reset_index()
 fig_bar = px.bar(df_agg, x='JobLevel', y='MonthlyIncome', color='Department',
                  barmode='group',
                  title='Средний доход по отделам и уровню должности',
                  labels={'MonthlyIncome': 'Средний доход ($)', 'JobLevel': 'Уровень должности'})
-fig_bar.write_image(f'{OUTPUT_DIR}/fig8_plotly_bar.png', width=1000, height=550)
-print("Сохранено: fig8_plotly_bar.png")
+save_plotly(fig_bar, f'{OUTPUT_DIR}/fig8_plotly_bar.png', 1000, 550)
 
 # ─────────────────────────────────────────────────────────────────
 # 6. Пропущенные значения и дубликаты
